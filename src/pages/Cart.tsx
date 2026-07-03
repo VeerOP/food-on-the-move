@@ -1,0 +1,135 @@
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
+import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery";
+import { CATALOG, variantLabel } from "@/lib/catalog";
+
+export default function CartPage() {
+  const { items, subtotal, count, updateQty, removeItem, loading } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-32 pb-16 section-container text-center">
+          <h1 className="font-display text-4xl mb-4">Sign in to view your cart</h1>
+          <Button variant="hero" onClick={() => navigate("/auth")}>Sign In</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const deliveryFee = computeDeliveryFee(subtotal);
+  const total = subtotal + deliveryFee;
+  const amountToFree = Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="pt-32 pb-16 section-container">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="font-display text-5xl md:text-6xl mb-8"
+        >
+          Your <span className="text-gradient">Cart</span>
+        </motion.h1>
+
+        {loading ? (
+          <p className="text-muted-foreground">Loading...</p>
+        ) : items.length === 0 ? (
+          <div className="text-center py-16">
+            <ShoppingBag className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground mb-6">Your cart is empty.</p>
+            <Button variant="hero" asChild>
+              <Link to="/#products">Browse Products</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-4">
+              {items.map((item) => (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-card border border-border/50 rounded-2xl p-4 flex items-start gap-4"
+                >
+                  {item.product_image && (
+                    <img src={item.product_image} alt={item.product_name} className="w-20 h-20 object-contain flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-display text-xl">{item.product_name}</h3>
+                      <Badge variant="secondary" className="text-xs">{variantLabel(item.variant)}</Badge>
+                    </div>
+                    <p className="text-muted-foreground text-sm">₹{item.price_inr.toFixed(2)} each</p>
+                    {item.pack_items && item.pack_items.length > 0 && (
+                      <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
+                        <Package className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>
+                          {item.pack_items.map((s) => CATALOG[s]?.name ?? s).join(" · ")}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-3">
+                      <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity - 1)}>
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <span className="w-8 text-center font-medium">{item.quantity}</span>
+                      <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity + 1)}>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="text-right flex flex-col items-end justify-between h-full gap-2">
+                    <p className="font-semibold whitespace-nowrap">₹{(item.price_inr * item.quantity).toFixed(2)}</p>
+                    <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            <div className="bg-card border border-border/50 rounded-2xl p-6 h-fit sticky top-28">
+              <h2 className="font-display text-2xl mb-4">Order Summary</h2>
+              <div className="space-y-2 mb-4">
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Items ({count})</span>
+                  <span>₹{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-muted-foreground">
+                  <span>Delivery</span>
+                  <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
+                </div>
+                {amountToFree > 0 && (
+                  <p className="text-xs text-primary/80">
+                    Add ₹{amountToFree.toFixed(2)} more for FREE delivery
+                  </p>
+                )}
+              </div>
+              <div className="border-t border-border/50 pt-4 mb-6 flex justify-between font-display text-xl">
+                <span>Total</span>
+                <span className="text-gradient">₹{total.toFixed(2)}</span>
+              </div>
+              <Button variant="hero" size="lg" className="w-full" onClick={() => navigate("/checkout")}>
+                Checkout <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+      <Footer />
+    </div>
+  );
+}

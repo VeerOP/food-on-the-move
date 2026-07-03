@@ -1,0 +1,93 @@
+import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState } from "react";
+
+export function CinematicLoader() {
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="fixed inset-0 z-[100] pointer-events-none"
+        >
+          {/* Film grain texture overlay */}
+          <div 
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            }}
+          />
+
+          {/* Center projector light flare */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.2 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            {/* Main light burst */}
+            <div 
+              className="w-[600px] h-[600px] rounded-full"
+              style={{
+                background: `radial-gradient(circle, 
+                  rgba(255, 255, 255, 0.15) 0%, 
+                  rgba(255, 255, 255, 0.08) 20%, 
+                  rgba(255, 255, 255, 0.02) 50%, 
+                  transparent 70%
+                )`,
+              }}
+            />
+          </motion.div>
+
+          {/* Subtle horizontal light streak */}
+          <motion.div
+            initial={{ opacity: 0, scaleX: 0 }}
+            animate={{ opacity: 1, scaleX: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, delay: 0.1, ease: "easeOut" }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[2px]"
+            style={{
+              background: `linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.1) 30%, 
+                rgba(255, 255, 255, 0.2) 50%, 
+                rgba(255, 255, 255, 0.1) 70%, 
+                transparent 100%
+              )`,
+            }}
+          />
+
+          {/* Subtle vertical light streak */}
+          <motion.div
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, delay: 0.15, ease: "easeOut" }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[2px] h-[60vh]"
+            style={{
+              background: `linear-gradient(180deg, 
+                transparent 0%, 
+                rgba(255, 255, 255, 0.08) 30%, 
+                rgba(255, 255, 255, 0.15) 50%, 
+                rgba(255, 255, 255, 0.08) 70%, 
+                transparent 100%
+              )`,
+            }}
+          />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
