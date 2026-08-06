@@ -1,7 +1,17 @@
 import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { useCart } from "@/hooks/use-cart";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { BundleBuilder } from "@/components/BundleBuilder";
 import productCorn from "@/assets/product-corn-main.png";
 import productJowar from "@/assets/product-jowar-main.png";
 import productQuinoa from "@/assets/product-quinoa-main.png";
@@ -113,53 +123,147 @@ function ClapperboardTag({ text, delay = 0 }: { text: string; delay?: number }) 
 function ProductCard({ product, index }: { product: typeof products[0]; index: number }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const { addToCart } = useCart();
+  const [builderOpen, setBuilderOpen] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<"po3" | "po5">("po3");
+  const [adding, setAdding] = useState(false);
+
+  const handleConfirmPack = async (packSlugs: string[]) => {
+    setAdding(true);
+    await addToCart(product.slug, { variant: selectedVariant, packItems: packSlugs });
+    setAdding(false);
+    setBuilderOpen(false);
+  };
 
   return (
-    <Link to={`/product/${product.slug}`}>
-      <motion.div
-        ref={ref}
-        initial={{ opacity: 0, y: 80 }}
-        animate={isInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.6, delay: index * 0.15 }}
-        className="group relative cursor-pointer"
-      >
-        <div className={`absolute inset-0 bg-gradient-to-br ${product.color} rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
-        
-        <div className="relative bg-card border border-border/50 rounded-3xl p-6 overflow-hidden card-hover">
-          {/* Clapperboard Tag */}
-          {product.clapperboardTag && (
-            <ClapperboardTag text={product.clapperboardTag} delay={index * 0.15} />
-          )}
+    <>
+      <Link to={`/product/${product.slug}`} state={{ from: "/#products" }} className="block h-full">
+        <motion.div
+          ref={ref}
+          initial={{ opacity: 0, y: 80 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: index * 0.15 }}
+          className="group relative cursor-pointer h-full"
+        >
+          <div className={`absolute inset-0 bg-gradient-to-br ${product.color} rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+          
+          <div className="relative bg-card border border-border/50 rounded-3xl p-6 overflow-hidden card-hover h-full flex flex-col justify-between">
+            <div>
+              {/* Clapperboard Tag */}
+              {product.clapperboardTag && (
+                <ClapperboardTag text={product.clapperboardTag} delay={index * 0.15} />
+              )}
 
-          {/* Product Image */}
-          <div className="relative h-64 mb-6 flex items-center justify-center">
-            <motion.img
-              src={product.image}
-              alt={product.name}
-              className="h-full w-auto object-contain drop-shadow-2xl"
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            />
+              {/* Product Image */}
+              <div className="relative h-56 mb-6 flex items-center justify-center">
+                <motion.img
+                  src={product.image}
+                  alt={product.name}
+                  className="h-full w-auto object-contain drop-shadow-2xl"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                />
+              </div>
+
+              {/* Content */}
+              <div className="text-center mb-4">
+                <span className="text-primary text-sm font-semibold uppercase tracking-wider">
+                  {product.tagline}
+                </span>
+                <h3 className="font-display text-2xl mt-2 mb-3 text-foreground">
+                  {product.name}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {product.description}
+                </p>
+              </div>
+            </div>
+
+            {/* Add to Cart dropdown button */}
+            <div className="mt-auto pt-4 relative z-20">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    variant="hero"
+                    className="w-full py-4 text-xs font-semibold rounded-2xl shadow-lg transition-all duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform translate-y-1 md:group-hover:translate-y-0 flex items-center justify-center gap-2"
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  align="center" 
+                  className="w-56 mt-1 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-md shadow-xl p-1.5"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <DropdownMenuItem
+                    className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      await addToCart(product.slug, { qty: 1, variant: "single" });
+                    }}
+                  >
+                    <div className="flex justify-between w-full font-medium text-sm">
+                      <span>Single Pack</span>
+                      <span className="text-primary">₹60</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedVariant("po3");
+                      setBuilderOpen(true);
+                    }}
+                  >
+                    <div className="flex justify-between w-full font-medium text-sm">
+                      <span>Pack of 3</span>
+                      <span className="text-primary">₹150</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedVariant("po5");
+                      setBuilderOpen(true);
+                    }}
+                  >
+                    <div className="flex justify-between w-full font-medium text-sm">
+                      <span>Pack of 5</span>
+                      <span className="text-primary">₹250</span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Hover Effect Background Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-3xl" />
           </div>
+        </motion.div>
+      </Link>
 
-          {/* Content */}
-          <div className="text-center">
-            <span className="text-primary text-sm font-semibold uppercase tracking-wider">
-              {product.tagline}
-            </span>
-            <h3 className="font-display text-2xl mt-2 mb-3 text-foreground">
-              {product.name}
-            </h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {product.description}
-            </p>
-          </div>
-
-          {/* Hover Effect */}
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-3xl" />
-        </div>
-      </motion.div>
-    </Link>
+      {/* Bundle Builder Dialog */}
+      {builderOpen && (
+        <BundleBuilder
+          open={builderOpen}
+          onOpenChange={setBuilderOpen}
+          variant={selectedVariant}
+          submitting={adding}
+          onConfirm={handleConfirmPack}
+        />
+      )}
+    </>
   );
 }
 
@@ -199,12 +303,34 @@ export function ProductsSection() {
           ))}
         </div>
 
+        {/* View All Products CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-14 text-center"
+        >
+          <Link to="/products">
+            <Button 
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-bold px-8 py-6 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 gap-3 group"
+            >
+              View All Products
+              <span className="bg-primary-foreground/20 rounded-full p-1 group-hover:translate-x-1 transition-transform">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </span>
+            </Button>
+          </Link>
+        </motion.div>
+
         {/* Bollywood Tag */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={isInView ? { opacity: 1, scale: 1 } : {}}
           transition={{ duration: 0.6, delay: 0.8 }}
-          className="mt-16 text-center"
+          className="mt-12 text-center"
         >
           <p className="font-cinematic text-2xl md:text-3xl text-muted-foreground uppercase tracking-wider">
             Snack Smart. <span className="text-gradient">Snack Bold.</span>

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  variant: Extract<Variant, "po3" | "po4">;
+  variant: Extract<Variant, "po3" | "po5">;
   onConfirm: (slugs: string[]) => void;
   submitting?: boolean;
 };

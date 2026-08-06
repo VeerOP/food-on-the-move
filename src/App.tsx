@@ -16,6 +16,8 @@ import Pay from "./pages/Pay";
 import Orders from "./pages/Orders";
 import Admin from "./pages/Admin";
 import Terms from "./pages/Terms";
+import Hampers from "./pages/Hampers";
+import Products from "./pages/Products";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,7 @@ const App = () => (
             <CartProvider>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/products" element={<Products />} />
                 <Route path="/product/:slug" element={<ProductDetail />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/cart" element={<Cart />} />
@@ -38,6 +41,7 @@ const App = () => (
                 <Route path="/orders" element={<Orders />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/hampers" element={<Hampers />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

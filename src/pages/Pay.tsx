@@ -13,11 +13,31 @@ import { buildUpiUri, UPI_PAYEE_VPA, UPI_PAYEE_NAME } from "@/lib/upi";
 import { buildWhatsAppOrderMessage, whatsappLink, googleMapsLink } from "@/lib/notify";
 import { toast } from "sonner";
 
+type OrderItem = {
+  product_name: string;
+  quantity: number;
+  line_total_inr: number;
+  variant: string;
+  pack_items: string[];
+};
+
 type Order = {
   id: string;
-  total_inr: number;
   status: string;
   upi_reference: string | null;
+  subtotal_inr: number;
+  delivery_fee_inr: number;
+  total_inr: number;
+  delivery_address: string;
+  landmark: string | null;
+  pincode: string | null;
+  delivery_lat: number;
+  delivery_lng: number;
+  delivery_distance_km: number;
+  customer_name: string;
+  customer_phone: string;
+  created_at: string;
+  order_items: OrderItem[];
 };
 
 export default function PayPage() {
@@ -26,7 +46,7 @@ export default function PayPage() {
   const { user } = useAuth();
   const [order, setOrder] = useState<Order | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [reference, setReference] = useState("");
+  const [screenshot, setScreenshot] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
@@ -38,7 +58,30 @@ export default function PayPage() {
     (async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, total_inr, status, upi_reference")
+        .select(`
+          id,
+          status,
+          upi_reference,
+          subtotal_inr,
+          delivery_fee_inr,
+          total_inr,
+          delivery_address,
+          landmark,
+          pincode,
+          delivery_lat,
+          delivery_lng,
+          delivery_distance_km,
+          customer_name,
+          customer_phone,
+          created_at,
+          order_items (
+            product_name,
+            quantity,
+            line_total_inr,
+            variant,
+            pack_items
+          )
+        `)
         .eq("id", id)
         .single();
       if (error || !data) {
@@ -46,7 +89,20 @@ export default function PayPage() {
         navigate("/orders");
         return;
       }
-      const ord = { ...data, total_inr: Number(data.total_inr) };
+      const ord: Order = {
+        ...data,
+        subtotal_inr: Number(data.subtotal_inr),
+        delivery_fee_inr: Number(data.delivery_fee_inr),
+        total_inr: Number(data.total_inr),
+        delivery_distance_km: Number(data.delivery_distance_km),
+        delivery_lat: Number(data.delivery_lat),
+        delivery_lng: Number(data.delivery_lng),
+        order_items: (data.order_items ?? []).map((i: any) => ({
+          ...i,
+          line_total_inr: Number(i.line_total_inr),
+          pack_items: Array.isArray(i.pack_items) ? i.pack_items : [],
+        })),
+      };
       setOrder(ord);
       const uri = buildUpiUri({
         amount: ord.total_inr,
@@ -57,19 +113,64 @@ export default function PayPage() {
     })();
   }, [id, user, navigate]);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Upload an image under 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setScreenshot(reader.result);
+        toast.success("Screenshot loaded successfully");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSendWhatsApp = (ord: Order) => {
+    const msg = buildWhatsAppOrderMessage({
+      orderId: ord.id,
+      customerName: ord.customer_name,
+      customerPhone: ord.customer_phone,
+      address: ord.delivery_address,
+      landmark: ord.landmark,
+      pincode: ord.pincode,
+      mapsUrl: googleMapsLink(ord.delivery_lat, ord.delivery_lng),
+      distanceKm: ord.delivery_distance_km,
+      subtotal: ord.subtotal_inr,
+      deliveryFee: ord.delivery_fee_inr,
+      total: ord.total_inr,
+      paymentStatus: "Paid (UPI)",
+      upiReference: ord.upi_reference && ord.upi_reference.startsWith("data:image/") ? "Screenshot Uploaded" : ord.upi_reference,
+      createdAt: ord.created_at,
+      items: ord.order_items.map((it) => ({
+        name: it.product_name,
+        quantity: it.quantity,
+        lineTotal: it.line_total_inr,
+        variant: it.variant,
+        packItems: it.pack_items,
+      })),
+    });
+    window.open(whatsappLink(msg), "_blank", "noopener");
+  };
+
   const confirmPayment = async () => {
     if (!order) return;
-    if (reference.trim().length < 4) {
-      toast.error("Enter the UPI transaction reference ID");
+    if (!screenshot) {
+      toast.error("Please upload a payment screenshot");
       return;
     }
     setConfirming(true);
-    const ref = reference.trim();
     const { error } = await supabase
       .from("orders")
       .update({
         status: "paid",
-        upi_reference: ref,
+        upi_reference: screenshot,
         updated_at: new Date().toISOString(),
       })
       .eq("id", order.id);
@@ -79,45 +180,17 @@ export default function PayPage() {
       return;
     }
 
-    // Fetch full order details for WhatsApp notification
-    const { data: full } = await supabase
-      .from("orders")
-      .select("id, customer_name, customer_phone, delivery_address, landmark, pincode, delivery_lat, delivery_lng, delivery_distance_km, subtotal_inr, delivery_fee_inr, total_inr, created_at, order_items(product_name, quantity, line_total_inr, variant, pack_items)")
-      .eq("id", order.id)
-      .single();
-
-    setConfirming(false);
     toast.success("Payment recorded! Your order is confirmed.");
+    
+    const updatedOrder = {
+      ...order,
+      status: "paid",
+      upi_reference: screenshot,
+    };
+    setOrder(updatedOrder);
+    setConfirming(false);
 
-    if (full) {
-      const msg = buildWhatsAppOrderMessage({
-        orderId: full.id,
-        customerName: full.customer_name,
-        customerPhone: full.customer_phone,
-        address: full.delivery_address,
-        landmark: full.landmark,
-        pincode: full.pincode,
-        mapsUrl: googleMapsLink(Number(full.delivery_lat), Number(full.delivery_lng)),
-        distanceKm: Number(full.delivery_distance_km),
-        subtotal: Number(full.subtotal_inr),
-        deliveryFee: Number(full.delivery_fee_inr),
-        total: Number(full.total_inr),
-        paymentStatus: "Paid (UPI)",
-        upiReference: ref,
-        createdAt: full.created_at,
-        items: (full.order_items ?? []).map((it: any) => ({
-          name: it.product_name,
-          quantity: it.quantity,
-          lineTotal: Number(it.line_total_inr),
-          variant: it.variant,
-          packItems: Array.isArray(it.pack_items) ? it.pack_items : [],
-        })),
-      });
-      // Open WhatsApp in new tab so owner is notified
-      window.open(whatsappLink(msg), "_blank", "noopener");
-    }
-
-    navigate("/orders");
+    handleSendWhatsApp(updatedOrder);
   };
 
   if (!order) {
@@ -150,10 +223,59 @@ export default function PayPage() {
           </p>
 
           {order.status === "paid" ? (
-            <div className="py-8">
-              <CheckCircle2 className="w-16 h-16 text-primary mx-auto mb-3" />
-              <p className="font-medium">This order is already paid.</p>
-              <Button variant="hero" className="mt-6" onClick={() => navigate("/orders")}>View Orders</Button>
+            <div className="py-8 space-y-6 text-center">
+              <div className="flex flex-col items-center">
+                <CheckCircle2 className="w-16 h-16 text-primary mb-3 animate-pulse" />
+                <h2 className="font-display text-3xl mb-1 text-foreground">Order Confirmed!</h2>
+                <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                  Thank you! We have received your payment reference. Please complete the step below.
+                </p>
+              </div>
+
+              {/* Order summary card */}
+              <div className="bg-background/50 border border-border/50 rounded-2xl p-6 text-left space-y-3">
+                <h3 className="font-display text-lg border-b border-border/50 pb-2">Order Summary</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                  {order.order_items.map((it, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{it.product_name} × {it.quantity}</span>
+                      <span className="font-semibold">₹{it.line_total_inr.toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-border/50 pt-2 flex justify-between font-display text-lg text-gradient">
+                  <span>Grand Total</span>
+                  <span>₹{order.total_inr.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* WhatsApp Call-to-action */}
+              <div className="space-y-4 pt-4 border-t border-border/50">
+                <div className="bg-primary/10 border border-primary/30 rounded-2xl p-5">
+                  <p className="text-xs text-primary font-semibold tracking-wider uppercase mb-3">
+                    📲 STEP 2: SHARE ORDER DETAILS ON WHATSAPP
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Send the generated order receipt message on WhatsApp. This is how we coordinate delivery details and updates with you.
+                  </p>
+                  <Button 
+                    variant="hero" 
+                    className="w-full bg-[#25D366] hover:bg-[#20ba56] text-white border-none shadow-lg shadow-green-500/20 py-6"
+                    onClick={() => handleSendWhatsApp(order)}
+                  >
+                    Send Order via WhatsApp
+                  </Button>
+                </div>
+
+                <div className="flex gap-3 justify-center">
+                  <Button variant="outline" className="w-full" onClick={() => navigate("/orders")}>
+                    View My Orders
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={() => navigate("/")}>
+                    Back to Home
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : (
             <>
@@ -210,22 +332,37 @@ export default function PayPage() {
                 Tip: app buttons work on mobile devices with the respective app installed. On desktop, scan the QR with your phone.
               </p>
 
-              <div className="border-t border-border/50 pt-6 text-left">
-                <Label htmlFor="ref">After paying, enter your UPI transaction reference ID</Label>
-                <Input
-                  id="ref"
-                  placeholder="e.g. 123456789012"
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  className="mt-2"
-                />
+              <div className="border-t border-border/50 pt-6 text-left space-y-4">
+                <Label htmlFor="screenshot" className="font-semibold text-foreground block">
+                  After paying, upload a screenshot of your transaction confirmation
+                </Label>
+                <div className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-border/60 rounded-2xl p-6 bg-card/30 hover:border-primary/50 transition-colors relative">
+                  <input
+                    id="screenshot"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  {screenshot ? (
+                    <div className="text-center space-y-3">
+                      <img src={screenshot} alt="Payment Preview" className="max-h-40 rounded-xl border border-border mx-auto object-contain" />
+                      <p className="text-xs text-primary font-medium">Click or drag to replace screenshot</p>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-2 pointer-events-none">
+                      <p className="text-sm text-muted-foreground">Click to upload or drag & drop image</p>
+                      <p className="text-xs text-muted-foreground/60">Supports PNG, JPG, JPEG up to 5MB</p>
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="hero"
-                  className="w-full mt-4"
+                  className="w-full mt-2"
                   onClick={confirmPayment}
-                  disabled={confirming}
+                  disabled={confirming || !screenshot}
                 >
-                  {confirming ? "Confirming…" : "I have paid — confirm order"}
+                  {confirming ? "Uploading & Confirming…" : "I have paid — submit screenshot"}
                 </Button>
               </div>
             </>

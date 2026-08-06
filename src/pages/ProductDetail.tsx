@@ -1,4 +1,4 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Leaf, Zap, Heart, Award, CheckCircle, ChevronLeft, ChevronRight, ShoppingCart, Zap as ZapIcon } from "lucide-react";
@@ -29,7 +29,19 @@ import lifestyleJowar from "@/assets/lifestyle-jowar.png";
 import lifestyleCorn from "@/assets/lifestyle-corn.png";
 import lifestyleMultigrain from "@/assets/lifestyle-multigrain.png";
 
-const productsData = {
+import coffeeWalnutCookies from "@/assets/coffee-walnut-cookies.jpeg";
+import jowaarJaggeryCookies from "@/assets/jowaar-jaggery-cookies.jpeg";
+import multigrainJaggeryCookies from "@/assets/multigrain-jaggery-cookies.jpeg";
+import bajraJaggeryCookies from "@/assets/bajra-jaggery-cookies.jpeg";
+import vanillaChocolateCookies from "@/assets/vanilla-chocolate-cookies.jpeg";
+import chocochipsSticks from "@/assets/chocochips-sticks.jpeg";
+import almondSticks from "@/assets/almond-sticks.jpeg";
+import kunafa from "@/assets/kunafa.jpeg";
+import milletBaklava from "@/assets/millet-baklava.jpeg";
+import doubleChocolateCookies from "@/assets/double-chocolate-cookies.jpeg";
+import fomoBottle from "@/assets/steel-bottle-new.jpeg";
+
+const productsData: Record<string, any> = {
   "woh-corn-thi": {
     id: 1,
     name: "Woh Corn Thi",
@@ -67,7 +79,6 @@ const productsData = {
     ],
     lifestyleImage: lifestyleCorn,
     lifestyleCaption: "Movie Night Essential",
-
   },
   "yeh-jowaari-hai-deewani": {
     id: 2,
@@ -108,7 +119,6 @@ const productsData = {
     ],
     lifestyleImage: lifestyleJowar,
     lifestyleCaption: "Perfect Chai Partner",
-
   },
   "quinoa-se-quinoa-tak": {
     id: 3,
@@ -148,7 +158,6 @@ const productsData = {
     ],
     lifestyleImage: lifestyleQuinoa,
     lifestyleCaption: "Blockbuster Puffs",
-
   },
   "hum-saath-saath-hai": {
     id: 4,
@@ -188,15 +197,194 @@ const productsData = {
     ],
     lifestyleImage: lifestyleMultigrain,
     lifestyleCaption: "Guilt-free Snacking",
-
+  },
+  "double-chocolate-cookies": {
+    id: 5,
+    name: "Double Chocolate Cookies",
+    tagline: "Rich Chocolatey Delight",
+    description: "Crunchy outside, soft inside & loaded with rich chocolate chips. Baked with love and premium ingredients for the ultimate chocolate lovers.",
+    images: [doubleChocolateCookies],
+    color: "from-amber-900/40 to-yellow-800/30",
+    accentColor: "text-amber-400",
+    features: [
+      { icon: Leaf, text: "100% Vegetarian" },
+      { icon: Heart, text: "No Maida" },
+      { icon: Zap, text: "Trans Fat Free" },
+      { icon: Award, text: "No Preservatives" },
+    ],
+    mainIngredients: ["Wheat Flour", "Sugar", "Butter", "Chocolate Chips", "Cocoa Butter", "Cocoa Powder"],
+    fullIngredients: "Wheat Flour, Sugar, Butter, Chocolate Chips, Cocoa Butter, Emulsifier (INS 322i), Cocoa Powder, Milk Solids, Vanilla Extract, Raising Agents (E500ii, E503ii), Iodized Salt.",
+    nutritionFacts: [
+      { nutrient: "Net Weight", per100g: "250g Container", dailyValue: "-" },
+      { nutrient: "Shelf Life", per100g: "6 Months", dailyValue: "-" },
+      { nutrient: "Trans Fat", per100g: "0 g", dailyValue: "0.0%" },
+    ],
+    benefits: ["Rich cocoa flavor", "No Maida", "Zero Trans Fat", "No artificial preservatives"],
+  },
+  "millet-baklava": {
+    id: 6,
+    name: "Millet Baklava",
+    tagline: "Traditional • Delicious • Premium",
+    description: "Exquisite traditional Middle-Eastern dessert reimagined with wholesome millets, desi ghee, almonds, cashews, pistachios, pure jaggery, honey, and saffron.",
+    images: [milletBaklava],
+    color: "from-amber-600/40 to-yellow-600/30",
+    accentColor: "text-amber-300",
+    features: [
+      { icon: Leaf, text: "Made with Millets" },
+      { icon: Heart, text: "No Maida" },
+      { icon: Zap, text: "No Preservatives" },
+      { icon: Award, text: "100% Vegetarian" },
+    ],
+    mainIngredients: ["Millet Flour", "Desi Ghee", "Almonds", "Cashews", "Pistachios", "Jaggery", "Honey"],
+    fullIngredients: "Millet Flour, Desi Ghee, Nuts (Almonds, Cashews, Pistachios), Jaggery, Honey, Cardamom, Saffron. Allergen info: Contains Nuts and Milk.",
+    nutritionFacts: [
+      { nutrient: "Net Weight", per100g: "200g Pack", dailyValue: "-" },
+      { nutrient: "Shelf Life", per100g: "30 Days", dailyValue: "-" },
+    ],
+    benefits: ["Rich in nuts & ghee", "Millet goodness", "No refined flour (No Maida)", "100% Vegetarian"],
+  },
+  "kunafa": {
+    id: 7,
+    name: "Kunafa",
+    tagline: "Traditional • Delicious • Premium",
+    description: "Crispy golden traditional dessert made with millet flour, rich ghee, premium nuts (almonds, cashews, pistachios), jaggery, cardamom, and aromatic saffron.",
+    images: [kunafa],
+    color: "from-amber-500/40 to-orange-500/30",
+    accentColor: "text-orange-300",
+    features: [
+      { icon: Leaf, text: "Made with Millets" },
+      { icon: Heart, text: "No Maida" },
+      { icon: Zap, text: "No Preservatives" },
+      { icon: Award, text: "100% Vegetarian" },
+    ],
+    mainIngredients: ["Millet Flour", "Ghee", "Almonds", "Cashews", "Pistachios", "Jaggery", "Cardamom"],
+    fullIngredients: "Millet Flour, Ghee, Nuts (Almonds, Cashews, Pistachios), Jaggery, Milk, Cardamom, Saffron. Allergen info: Contains Nuts and Milk.",
+    nutritionFacts: [
+      { nutrient: "Net Weight", per100g: "200g Pack", dailyValue: "-" },
+      { nutrient: "Shelf Life", per100g: "15 Days", dailyValue: "-" },
+    ],
+    benefits: ["Authentic crispy texture", "Prepared with pure ghee", "Nutrient rich millet base"],
+  },
+  "almond-sticks": {
+    id: 8,
+    name: "Almond Sticks",
+    tagline: "Crunchy & Delicious",
+    description: "Mouth-watering crunchy snack sticks baked with real almonds, butter, and wholesome ingredients. Any time is snack time!",
+    images: [almondSticks],
+    color: "from-yellow-600/40 to-amber-700/30",
+    accentColor: "text-yellow-400",
+    features: [
+      { icon: Leaf, text: "Made with Real Almonds" },
+      { icon: Heart, text: "No Maida" },
+      { icon: Zap, text: "No Preservatives" },
+      { icon: Award, text: "100% Vegetarian" },
+    ],
+    mainIngredients: ["Wheat Flour", "Sugar", "Butter", "Almonds (12%)", "Milk Solids"],
+    fullIngredients: "Wheat Flour, Sugar, Butter, Almonds (12%), Milk Solids, Raising Agents (E500ii, E503ii), Iodized Salt.",
+    nutritionFacts: [
+      { nutrient: "Net Weight", per100g: "200g Jar", dailyValue: "-" },
+      { nutrient: "Shelf Life", per100g: "6 Months", dailyValue: "-" },
+    ],
+    benefits: ["12% Real Almonds", "Crunchy & satisfying", "No Preservatives"],
+  },
+  "chocochips-sticks": {
+    id: 9,
+    name: "ChocoChips Sticks",
+    tagline: "Crunchy & Delicious",
+    description: "Crispy snack sticks studded with 13% rich choco chips and cocoa powder. Pure indulgence in every bite.",
+    images: [chocochipsSticks],
+    color: "from-amber-800/40 to-stone-700/30",
+    accentColor: "text-amber-300",
+    features: [
+      { icon: Leaf, text: "Made with Millets" },
+      { icon: Heart, text: "No Maida" },
+      { icon: Zap, text: "No Preservatives" },
+      { icon: Award, text: "13% Choco Chips" },
+    ],
+    mainIngredients: ["Wheat Flour", "Sugar", "Butter", "Choco Chips (13%)", "Cocoa Powder"],
+    fullIngredients: "Wheat Flour, Sugar, Butter, Choco Chips (13%), Cocoa Powder, Milk Solids, Raising Agents (E500ii, E503ii), Iodized Salt.",
+    nutritionFacts: [
+      { nutrient: "Net Weight", per100g: "200g Jar", dailyValue: "-" },
+      { nutrient: "Shelf Life", per100g: "6 Months", dailyValue: "-" },
+    ],
+    benefits: ["13% real chocolate chips", "Made with millets", "No Maida"],
+  },
+  "vanilla-chocolate-cookies": {
+    id: 10,
+    name: "Vanilla Chocolate Cookies",
+    tagline: "Crunchy, Buttery & Delightfully Chocolatey",
+    description: "Deliciously baked cookies combining fragrant vanilla extract with rich chocolate chips.",
+    images: [vanillaChocolateCookies],
+    color: "from-amber-600/40 to-amber-800/30",
+    accentColor: "text-amber-300",
+    features: [
+      { icon: Leaf, text: "100% Vegetarian" },
+      { icon: Heart, text: "No Maida" },
+      { icon: Zap, text: "Trans Fat Free" },
+      { icon: Award, text: "No Preservatives" },
+    ],
+    mainIngredients: ["Wheat Flour", "Sugar", "Butter", "Chocolate Chips", "Vanilla Extract"],
+    fullIngredients: "Wheat Flour, Sugar, Butter, Chocolate Chips, Vanilla Extract, Milk Solids, Raising Agents (E500ii, E503ii), Iodized Salt.",
+    nutritionFacts: [
+      { nutrient: "Net Weight", per100g: "250g Jar", dailyValue: "-" },
+      { nutrient: "Shelf Life", per100g: "6 Months", dailyValue: "-" },
+    ],
+    benefits: ["Buttery & crunchy", "Real vanilla extract", "Trans fat free"],
+  },
+  "fomo-steel-bottle": {
+    id: 11,
+    name: "FOMO Steel Bottle",
+    tagline: "Premium Stainless Steel Bottle",
+    description: "Sleek, durable, double-walled food-grade stainless steel bottle with Food On The Move branding. Keep your drinks cool or hot wherever you travel.",
+    images: [fomoBottle],
+    color: "from-emerald-600/40 to-teal-700/30",
+    accentColor: "text-emerald-400",
+    features: [
+      { icon: Leaf, text: "Food Grade Steel" },
+      { icon: Heart, text: "BPA Free" },
+      { icon: Zap, text: "Eco Friendly" },
+      { icon: Award, text: "Ergonomic Strap" },
+    ],
+    mainIngredients: ["100% Premium Stainless Steel", "Eco-friendly Lid & Strap"],
+    fullIngredients: "High grade 304 Stainless Steel body, non-toxic BPA free silicone lid ring, durable carrying strap.",
+    nutritionFacts: [
+      { nutrient: "Capacity", per100g: "750 ml", dailyValue: "-" },
+      { nutrient: "Material", per100g: "Stainless Steel", dailyValue: "-" },
+    ],
+    benefits: ["Eco-friendly & reusable", "Durable stainless steel", "Travel friendly strap"],
   },
 };
 
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const product = slug ? productsData[slug as keyof typeof productsData] : null;
   const catalogEntry = slug ? CATALOG[slug] : null;
-  const { addToCart } = useCart();
+  const product = slug 
+    ? (productsData[slug] || (catalogEntry ? {
+        id: catalogEntry.slug,
+        name: catalogEntry.name,
+        tagline: catalogEntry.tagline,
+        description: `Delicious ${catalogEntry.name} prepared with premium ingredients by Food On The Move.`,
+        images: [catalogEntry.image],
+        color: "from-amber-600/40 to-yellow-600/30",
+        accentColor: "text-amber-400",
+        features: [
+          { icon: Leaf, text: "100% Vegetarian" },
+          { icon: Heart, text: "No Preservatives" },
+          { icon: Zap, text: "Premium Quality" },
+          { icon: Award, text: "Made with Love" },
+        ],
+        mainIngredients: ["Wholesome Ingredients", "Pure Ghee / Oil", "Natural Flavors"],
+        fullIngredients: "Made with high quality selected ingredients, natural spices & flavors.",
+        nutritionFacts: [
+          { nutrient: "Quality", per100g: "100% Premium", dailyValue: "-" },
+          { nutrient: "Preservatives", per100g: "Zero Preservatives", dailyValue: "-" },
+        ],
+        benefits: ["100% Vegetarian", "No Preservatives", "Made with Love"],
+        lifestyleImage: null,
+        lifestyleCaption: "",
+      } : null)) 
+    : null;
+  const { addToCart, clearCart } = useCart();
   const navigate = useNavigate();
   const [variant, setVariant] = useState<Variant>("single");
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -215,6 +403,7 @@ export default function ProductDetail() {
   const handleBuyNow = async (packItems?: string[]) => {
     if (!catalogEntry) return;
     setAdding(true);
+    await clearCart();
     await addToCart(catalogEntry.slug, { variant, packItems: packItems ?? [] });
     setAdding(false);
     setBuilderOpen(false);
@@ -234,6 +423,19 @@ export default function ProductDetail() {
   const [buyNowIntent, setBuyNowIntent] = useState(false);
 
 
+  const location = useLocation();
+
+  const handleBackClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/products");
+    }
+  };
+
   // Scroll to top when page loads
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -244,9 +446,9 @@ export default function ProductDetail() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="font-display text-4xl mb-4">Product Not Found</h1>
-          <Link to="/">
-            <Button variant="outline">Go Back Home</Button>
-          </Link>
+          <button onClick={handleBackClick} className="inline-flex items-center gap-2 text-primary hover:underline font-medium">
+            <ArrowLeft className="w-4 h-4" /> Go Back
+          </button>
         </div>
       </div>
     );
@@ -267,10 +469,13 @@ export default function ProductDetail() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link to="/#products" className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8">
+            <button 
+              onClick={handleBackClick} 
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8 text-sm font-semibold cursor-pointer bg-transparent border-0 outline-none"
+            >
               <ArrowLeft className="w-4 h-4" />
               Back to Products
-            </Link>
+            </button>
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-12 items-center">

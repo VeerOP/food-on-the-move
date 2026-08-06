@@ -98,20 +98,79 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((link, index) => (
-              <motion.a
-                key={link.name}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
-                className="text-muted-foreground hover:text-foreground transition-colors duration-300 font-medium"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -2 }}
-              >
-                {link.name}
-              </motion.a>
-            ))}
+            {navLinks.map((link, index) => {
+              if (link.name === "Products") {
+                return (
+                  <div key={link.name}>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <motion.button
+                          className="text-muted-foreground hover:text-foreground transition-colors duration-300 font-medium flex items-center gap-1 cursor-pointer focus:outline-none bg-transparent border-0 outline-none"
+                          initial={{ opacity: 0, y: -20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          whileHover={{ y: -2 }}
+                        >
+                          {link.name} <ChevronDown size={14} className="mt-0.5" />
+                        </motion.button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start" className="w-60 mt-2 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-md shadow-xl p-1.5">
+                        <DropdownMenuItem 
+                          className="cursor-pointer py-2.5 px-3.5 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                          onClick={() => navigate("/products")}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm text-primary">All Products Catalog</span>
+                            <span className="text-xs text-muted-foreground">Puffs, Cookies, Sweets, Sticks</span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1 bg-border/50" />
+                        <DropdownMenuItem 
+                          className="cursor-pointer py-2.5 px-3.5 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                          onClick={() => {
+                            if (location.pathname === "/") {
+                              const el = document.getElementById("products");
+                              el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                            } else {
+                              navigate("/#products");
+                            }
+                          }}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm">Featured Puffs</span>
+                            <span className="text-xs text-muted-foreground">Corn, Jowar, Quinoa, Multigrain</span>
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="my-1 bg-border/50" />
+                        <DropdownMenuItem 
+                          className="cursor-pointer py-2.5 px-3.5 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                          onClick={() => navigate("/hampers")}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm">Hampers & Gift Boxes</span>
+                            <span className="text-xs text-muted-foreground">Gifting bundles with MOQ</span>
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                );
+              }
+              return (
+                <motion.a
+                  key={link.name}
+                  href={link.href}
+                  onClick={(e) => handleNavClick(e, link.href)}
+                  className="text-muted-foreground hover:text-foreground transition-colors duration-300 font-medium"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -2 }}
+                >
+                  {link.name}
+                </motion.a>
+              );
+            })}
             <ThemeToggle />
             <Link to="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors">
               <ShoppingCart size={22} />
@@ -173,16 +232,48 @@ export function Navbar() {
             className="md:hidden bg-background/95 backdrop-blur-lg border-b border-border"
           >
             <div className="section-container py-6 flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  onClick={(e) => handleNavClick(e, link.href)}
-                  className="text-lg font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
-                >
-                  {link.name}
-                </a>
-              ))}
+              {navLinks.map((link) => {
+                if (link.name === "Products") {
+                  return (
+                    <div key={link.name} className="flex flex-col gap-2 pl-3 border-l-2 border-primary/30 py-1">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Products</span>
+                      <a
+                        href="#products"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setIsMobileMenuOpen(false);
+                          if (location.pathname === "/") {
+                            const el = document.getElementById("products");
+                            el?.scrollIntoView({ behavior: "smooth", block: "start" });
+                          } else {
+                            navigate("/#products");
+                          }
+                        }}
+                        className="text-lg font-medium text-foreground hover:text-primary transition-colors py-1 pl-2"
+                      >
+                        Individual Puffs
+                      </a>
+                      <Link
+                        to="/hampers"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-lg font-medium text-foreground hover:text-primary transition-colors py-1 pl-2"
+                      >
+                        Hampers & Gift Boxes
+                      </Link>
+                    </div>
+                  );
+                }
+                return (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    onClick={(e) => handleNavClick(e, link.href)}
+                    className="text-lg font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
+                  >
+                    {link.name}
+                  </a>
+                );
+              })}
               <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 py-2">
                 <ShoppingCart size={20} /> Cart {count > 0 && <span className="bg-primary text-primary-foreground text-xs px-2 rounded-full">{count}</span>}
               </Link>

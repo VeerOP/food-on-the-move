@@ -161,7 +161,16 @@ export default function AdminPage() {
                       <span className="text-gradient">₹{o.total_inr.toFixed(2)}</span>
                     </div>
                     {o.upi_reference && (
-                      <p className="text-xs text-muted-foreground mt-1">UPI Ref: {o.upi_reference}</p>
+                      o.upi_reference.startsWith("data:image/") ? (
+                        <div className="mt-2 space-y-1 text-left">
+                          <span className="text-xs text-muted-foreground block font-medium">Payment Screenshot:</span>
+                          <a href={o.upi_reference} target="_blank" rel="noopener noreferrer" className="inline-block">
+                            <img src={o.upi_reference} alt="Payment Screenshot" className="max-w-[180px] max-h-[140px] border border-border/50 rounded-xl object-contain hover:scale-105 transition-transform duration-300" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground mt-1">UPI Ref: {o.upi_reference}</p>
+                      )
                     )}
                   </div>
                 </div>

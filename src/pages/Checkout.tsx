@@ -29,7 +29,7 @@ const pinSchema = z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit pinc
 const landmarkSchema = z.string().trim().max(120).optional().or(z.literal(""));
 
 export default function CheckoutPage() {
-  const { items, subtotal, clearCart } = useCart();
+  const { items, subtotal, clearCart, discount, couponCode } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
 
   const withinRadius = distance !== null && distance <= DELIVERY_RADIUS_KM;
   const deliveryFee = withinRadius ? computeDeliveryFee(subtotal) : 0;
-  const total = subtotal + deliveryFee;
+  const total = subtotal - discount + deliveryFee;
   const amountToFree = Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
 
   const useMyLocation = () => {
@@ -123,7 +123,7 @@ export default function CheckoutPage() {
       .insert({
         user_id: user.id,
         status: "pending_payment",
-        subtotal_inr: subtotal,
+        subtotal_inr: subtotal - discount,
         delivery_fee_inr: deliveryFee,
         total_inr: total,
         delivery_address: address,
@@ -297,6 +297,12 @@ export default function CheckoutPage() {
                 <span className="text-muted-foreground">Subtotal</span>
                 <span>₹{subtotal.toFixed(2)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-primary font-medium">
+                  <span>Discount ({couponCode})</span>
+                  <span>-₹{discount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
                 <span>{withinRadius ? (deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`) : "—"}</span>

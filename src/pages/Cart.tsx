@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -11,9 +13,10 @@ import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery"
 import { CATALOG, variantLabel } from "@/lib/catalog";
 
 export default function CartPage() {
-  const { items, subtotal, count, updateQty, removeItem, loading } = useCart();
+  const { items, subtotal, count, updateQty, removeItem, loading, couponCode, discount, applyCoupon, removeCoupon } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [couponInput, setCouponInput] = useState("");
 
   if (!user) {
     return (
@@ -28,7 +31,7 @@ export default function CartPage() {
   }
 
   const deliveryFee = computeDeliveryFee(subtotal);
-  const total = subtotal + deliveryFee;
+  const total = subtotal - discount + deliveryFee;
   const amountToFree = Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
 
   return (
@@ -81,18 +84,31 @@ export default function CartPage() {
                         </span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 mt-3">
-                      <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity - 1)}>
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      <span className="w-8 text-center font-medium">{item.quantity}</span>
-                      <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity + 1)}>
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    {item.product_slug === "fomo-steel-bottle" ? (
+                      <div className="flex items-center gap-2 mt-3">
+                        <Badge variant="default" className="text-xs bg-primary text-primary-foreground font-medium px-2 py-0.5">Free Gift Included!</Badge>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-3">
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          onClick={() => updateQty(item.id, item.quantity - 1)}
+                          disabled={!!CATALOG[item.product_slug]?.moq && item.quantity <= (CATALOG[item.product_slug]?.moq ?? 0)}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity + 1)}>
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="text-right flex flex-col items-end justify-between h-full gap-2">
-                    <p className="font-semibold whitespace-nowrap">₹{(item.price_inr * item.quantity).toFixed(2)}</p>
+                    <p className="font-semibold whitespace-nowrap">
+                      {item.product_slug === "fomo-steel-bottle" ? "FREE" : `₹${(item.price_inr * item.quantity).toFixed(2)}`}
+                    </p>
                     <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
@@ -103,11 +119,17 @@ export default function CartPage() {
 
             <div className="bg-card border border-border/50 rounded-2xl p-6 h-fit sticky top-28">
               <h2 className="font-display text-2xl mb-4">Order Summary</h2>
-              <div className="space-y-2 mb-4">
+              <div className="space-y-3 mb-4">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Items ({count})</span>
                   <span>₹{subtotal.toFixed(2)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-primary font-medium">
+                    <span>Discount (20%)</span>
+                    <span>-₹{discount.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-muted-foreground">
                   <span>Delivery</span>
                   <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
@@ -118,6 +140,41 @@ export default function CartPage() {
                   </p>
                 )}
               </div>
+
+              {/* Coupon Code Section */}
+              <div className="border-t border-border/50 pt-4 pb-4">
+                {couponCode ? (
+                  <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl p-3 text-sm">
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-primary">{couponCode} applied</span>
+                      <span className="text-xs text-muted-foreground">20% discount on total puffs</span>
+                    </div>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-8 px-2.5 rounded-lg" onClick={removeCoupon}>
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Coupon Code"
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value)}
+                      className="rounded-xl"
+                    />
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        const ok = applyCoupon(couponInput);
+                        if (ok) setCouponInput("");
+                      }}
+                      className="rounded-xl px-4"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t border-border/50 pt-4 mb-6 flex justify-between font-display text-xl">
                 <span>Total</span>
                 <span className="text-gradient">₹{total.toFixed(2)}</span>

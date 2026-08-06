@@ -73,6 +73,14 @@ export function Footer() {
                   Hum Saath Saath Hai
                 </button>
               </li>
+              <li>
+                <Link
+                  to="/products"
+                  className="text-primary font-medium text-sm hover:underline transition-colors text-left block pt-1"
+                >
+                  View All Products →
+                </Link>
+              </li>
             </ul>
           </div>
 
