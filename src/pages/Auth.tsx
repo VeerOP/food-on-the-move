@@ -70,7 +70,9 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+    const redirectUrl = window.location.hostname.includes("github.io")
+      ? "https://veerop.github.io/food-on-the-move/"
+      : `${window.location.origin}${window.location.pathname}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
