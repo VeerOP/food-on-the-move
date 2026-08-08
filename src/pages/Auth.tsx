@@ -59,7 +59,7 @@ export default function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
         data: { full_name: name || email },
       },
     });
@@ -70,10 +70,11 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
+    const redirectUrl = `${window.location.origin}${window.location.pathname}`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: redirectUrl,
       },
     });
     if (error) {

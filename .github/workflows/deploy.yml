@@ -31,6 +31,10 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
       - name: Build
+        env:
+          VITE_SUPABASE_URL: "https://gthkvypeazpuojaglqps.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_CzpcwU4BM1En3wSSJ98tvA_bYX5zWuI"
+          VITE_SUPABASE_PROJECT_ID: "gthkvypeazpuojaglqps"
         run: npm run build
       - name: Copy 404 & nojekyll
         run: cp docs/index.html docs/404.html && touch docs/.nojekyll
