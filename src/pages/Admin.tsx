@@ -168,6 +168,8 @@ export default function AdminPage() {
                             <img src={o.upi_reference} alt="Payment Screenshot" className="max-w-[180px] max-h-[140px] border border-border/50 rounded-xl object-contain hover:scale-105 transition-transform duration-300" />
                           </a>
                         </div>
+                      ) : o.upi_reference.startsWith("pay_") ? (
+                        <p className="text-xs text-muted-foreground mt-1 font-semibold text-primary">Razorpay ID: {o.upi_reference}</p>
                       ) : (
                         <p className="text-xs text-muted-foreground mt-1">UPI Ref: {o.upi_reference}</p>
                       )

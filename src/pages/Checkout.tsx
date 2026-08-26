@@ -43,6 +43,7 @@ export default function CheckoutPage() {
   const [locating, setLocating] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi">("razorpay");
 
   useEffect(() => {
     if (!user) navigate("/auth");
@@ -134,7 +135,7 @@ export default function CheckoutPage() {
         delivery_distance_km: Number(distance!.toFixed(3)),
         customer_name: name,
         customer_phone: phone,
-        payment_method: "upi",
+        payment_method: paymentMethod,
       })
       .select("id")
       .single();
@@ -262,6 +263,55 @@ export default function CheckoutPage() {
               )}
             </div>
 
+            <div className="bg-card border border-border/50 rounded-2xl p-6">
+              <h2 className="font-display text-2xl mb-4">Payment Method</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("razorpay")}
+                  className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-32 transition-all duration-300 relative overflow-hidden group ${
+                    paymentMethod === "razorpay"
+                      ? "border-primary bg-primary/5 shadow-md shadow-primary/5"
+                      : "border-border/50 bg-card/50 hover:border-border/85"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-display text-lg font-semibold text-foreground">Online Payment</span>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                      paymentMethod === "razorpay" ? "border-primary bg-primary" : "border-muted"
+                    }`}>
+                      {paymentMethod === "razorpay" && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-normal">
+                    Pay automatically with Cards, UPI, Netbanking, or Wallets via Razorpay. (Recommended)
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("upi")}
+                  className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-32 transition-all duration-300 relative overflow-hidden group ${
+                    paymentMethod === "upi"
+                      ? "border-primary bg-primary/5 shadow-md shadow-primary/5"
+                      : "border-border/50 bg-card/50 hover:border-border/85"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="font-display text-lg font-semibold text-foreground">Manual UPI QR</span>
+                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
+                      paymentMethod === "upi" ? "border-primary bg-primary" : "border-muted"
+                    }`}>
+                      {paymentMethod === "upi" && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-normal">
+                    Scan our UPI QR code, transfer manually, and upload the payment screenshot.
+                  </p>
+                </button>
+              </div>
+            </div>
+
             <p className="text-xs text-muted-foreground">
               By placing this order you agree to our{" "}
               <Link to="/terms" className="underline hover:text-primary">Terms & Conditions</Link>.
@@ -324,9 +374,13 @@ export default function CheckoutPage() {
               onClick={handleProceed}
               disabled={submitting || !withinRadius}
             >
-              {submitting ? "Creating order..." : "Pay with UPI"}
+              {submitting ? "Creating order..." : paymentMethod === "razorpay" ? "Proceed to Payment" : "Pay with UPI"}
             </Button>
-            <p className="text-[11px] text-muted-foreground text-center mt-3">UPI only · No cards, wallets or COD</p>
+            <p className="text-[11px] text-muted-foreground text-center mt-3">
+              {paymentMethod === "razorpay"
+                ? "Cards, UPI, Netbanking, Wallets supported"
+                : "Manual UPI transfer · Screenshot confirmation required"}
+            </p>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import QRCode from "qrcode";
-import { Copy, Smartphone, CheckCircle2 } from "lucide-react";
+import { Copy, Smartphone, CheckCircle2, CreditCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,6 +38,21 @@ type Order = {
   customer_phone: string;
   created_at: string;
   order_items: OrderItem[];
+  payment_method: string;
+};
+
+const loadRazorpay = () => {
+  return new Promise<boolean>((resolve) => {
+    if ((window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 };
 
 export default function PayPage() {
@@ -48,6 +63,7 @@ export default function PayPage() {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -62,6 +78,7 @@ export default function PayPage() {
           id,
           status,
           upi_reference,
+          payment_method,
           subtotal_inr,
           delivery_fee_inr,
           total_inr,
@@ -133,6 +150,7 @@ export default function PayPage() {
   };
 
   const handleSendWhatsApp = (ord: Order) => {
+    const isRazorpay = ord.upi_reference && ord.upi_reference.startsWith("pay_");
     const msg = buildWhatsAppOrderMessage({
       orderId: ord.id,
       customerName: ord.customer_name,
@@ -145,7 +163,7 @@ export default function PayPage() {
       subtotal: ord.subtotal_inr,
       deliveryFee: ord.delivery_fee_inr,
       total: ord.total_inr,
-      paymentStatus: "Paid (UPI)",
+      paymentStatus: isRazorpay ? "Paid (Razorpay)" : "Paid (UPI)",
       upiReference: ord.upi_reference && ord.upi_reference.startsWith("data:image/") ? "Screenshot Uploaded" : ord.upi_reference,
       createdAt: ord.created_at,
       items: ord.order_items.map((it) => ({
@@ -158,6 +176,158 @@ export default function PayPage() {
     });
     window.open(whatsappLink(msg), "_blank", "noopener");
   };
+
+  const handleRazorpayPayment = async () => {
+    if (!order) return;
+    setConfirming(true);
+    const loaded = await loadRazorpay();
+    if (!loaded) {
+      setConfirming(false);
+      toast.error("Failed to load Razorpay SDK. Please check your internet connection.");
+      return;
+    }
+
+    const key = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
+    if (!key) {
+      setConfirming(false);
+      toast.error("Razorpay Key ID is not configured. Please add VITE_RAZORPAY_KEY_ID to your .env file.");
+      return;
+    }
+
+    try {
+      // 1. BACKEND - Create Order
+      const createResponse = await fetch("/api/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: Math.round(order.total_inr * 100), // in paise
+          currency: "INR",
+          receipt: `order_${order.id.slice(0, 8)}`,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        throw new Error(errorData.error || "Failed to create order on server");
+      }
+
+      const { order_id } = await createResponse.json();
+
+      // 2. FRONTEND - Open Razorpay Modal with order_id
+      const options = {
+        key: key,
+        amount: Math.round(order.total_inr * 100),
+        currency: "INR",
+        name: "Food on the Move",
+        description: `Order #${order.id.slice(0, 8)}`,
+        order_id: order_id, // Pass order_id here
+        handler: async function (response: any) {
+          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
+          setConfirming(true);
+
+          try {
+            // 3. BACKEND - Verify Signature
+            const verifyResponse = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                razorpay_payment_id,
+                razorpay_order_id,
+                razorpay_signature,
+              }),
+            });
+
+            const verifyData = await verifyResponse.json();
+            if (!verifyResponse.ok || !verifyData.success) {
+              throw new Error(verifyData.error || "Payment signature verification failed");
+            }
+
+            // Sync to Database only after signature is verified successfully
+            const { error } = await supabase
+              .from("orders")
+              .update({
+                status: "paid",
+                upi_reference: razorpay_payment_id,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", order.id);
+
+            if (error) throw error;
+
+            toast.success("Payment verified! Order confirmed.");
+            const updatedOrder = {
+              ...order,
+              status: "paid",
+              upi_reference: razorpay_payment_id,
+            };
+            setOrder(updatedOrder);
+            handleSendWhatsApp(updatedOrder);
+          } catch (err: any) {
+            toast.error(err.message || "Failed to verify signature");
+          } finally {
+            setConfirming(false);
+          }
+        },
+        prefill: {
+          name: order.customer_name,
+          contact: order.customer_phone,
+          email: user?.email || "",
+        },
+        theme: {
+          color: "#F28C28",
+        },
+        modal: {
+          ondismiss: function () {
+            setConfirming(false);
+            toast.error("Payment cancelled");
+          },
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      setConfirming(false);
+      console.error(err);
+      toast.error(err.message || "Failed to initialize payment gateway");
+    }
+  };
+
+  const switchPaymentMethod = async (method: "razorpay" | "upi") => {
+    if (!order) return;
+    setConfirming(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ payment_method: method })
+      .eq("id", order.id);
+
+    if (error) {
+      setConfirming(false);
+      toast.error(error.message);
+      return;
+    }
+
+    setOrder({
+      ...order,
+      payment_method: method,
+    });
+    setConfirming(false);
+    toast.success(`Switched to ${method === "razorpay" ? "Online Payment" : "Manual UPI Transfer"}`);
+  };
+
+  useEffect(() => {
+    if (order && order.status === "pending_payment" && order.payment_method === "razorpay" && !hasAutoTriggered) {
+      setHasAutoTriggered(true);
+      const timer = setTimeout(() => {
+        handleRazorpayPayment();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [order?.id, order?.payment_method, order?.status, hasAutoTriggered]);
 
   const confirmPayment = async () => {
     if (!order) return;
@@ -217,7 +387,9 @@ export default function PayPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-card border border-border/50 rounded-3xl p-8 text-center"
         >
-          <h1 className="font-display text-4xl mb-2">Pay with <span className="text-gradient">UPI</span></h1>
+          <h1 className="font-display text-4xl mb-2">
+            Pay with <span className="text-gradient">{order.payment_method === "razorpay" ? "Razorpay" : "UPI"}</span>
+          </h1>
           <p className="text-muted-foreground mb-6">
             Order #{order.id.slice(0, 8)} · Amount: <span className="text-foreground font-semibold">₹{order.total_inr.toFixed(2)}</span>
           </p>
@@ -275,6 +447,44 @@ export default function PayPage() {
                     Back to Home
                   </Button>
                 </div>
+              </div>
+            </div>
+          ) : order.payment_method === "razorpay" ? (
+            <div className="space-y-6 py-4">
+              <div className="flex flex-col items-center justify-center p-8 bg-card border border-border/50 rounded-2xl">
+                <CreditCard className="w-16 h-16 text-primary mb-4 animate-pulse" />
+                <h3 className="font-display text-2xl text-foreground mb-2">Automated Online Payment</h3>
+                <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+                  Secure checkout via Razorpay. Pay automatically using credit/debit cards, net banking, UPI, or mobile wallets.
+                </p>
+                <Button
+                  variant="hero"
+                  size="lg"
+                  className="w-full py-6 flex items-center justify-center gap-2 font-display text-lg"
+                  onClick={handleRazorpayPayment}
+                  disabled={confirming}
+                >
+                  {confirming ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Loading Gateway...
+                    </>
+                  ) : (
+                    <>Pay Securely ₹{order.total_inr.toFixed(2)}</>
+                  )}
+                </Button>
+              </div>
+
+              <div className="border-t border-border/50 pt-6">
+                <p className="text-xs text-muted-foreground mb-3">Having trouble with automatic payment?</p>
+                <Button
+                  variant="outline"
+                  className="w-full text-xs py-4"
+                  onClick={() => switchPaymentMethod("upi")}
+                  disabled={confirming}
+                >
+                  Switch to Manual UPI QR Transfer
+                </Button>
               </div>
             </div>
           ) : (
@@ -364,6 +574,18 @@ export default function PayPage() {
                 >
                   {confirming ? "Uploading & Confirming…" : "I have paid — submit screenshot"}
                 </Button>
+
+                <div className="border-t border-border/50 pt-4 text-center">
+                  <p className="text-xs text-muted-foreground mb-2">Prefer paying automatically?</p>
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs py-4"
+                    onClick={() => switchPaymentMethod("razorpay")}
+                    disabled={confirming}
+                  >
+                    Switch to Online Payment (Razorpay)
+                  </Button>
+                </div>
               </div>
             </>
           )}

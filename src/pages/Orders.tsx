@@ -125,7 +125,13 @@ export default function OrdersPage() {
                     <span className="text-gradient">₹{o.total_inr.toFixed(2)}</span>
                   </div>
                   {o.upi_reference && (
-                    <p className="text-xs text-muted-foreground">UPI Ref: {o.upi_reference}</p>
+                    o.upi_reference.startsWith("pay_") ? (
+                      <p className="text-xs text-muted-foreground font-semibold text-primary">Razorpay ID: {o.upi_reference}</p>
+                    ) : o.upi_reference.startsWith("data:image/") ? (
+                      <p className="text-xs text-muted-foreground">Payment Screenshot Uploaded</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">UPI Ref: {o.upi_reference}</p>
+                    )
                   )}
                 </div>
                 {o.status === "pending_payment" && (
