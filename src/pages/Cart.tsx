@@ -13,7 +13,7 @@ import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery"
 import { CATALOG, variantLabel } from "@/lib/catalog";
 
 export default function CartPage() {
-  const { items, subtotal, count, updateQty, removeItem, loading, couponCode, discount, applyCoupon, removeCoupon } = useCart();
+  const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, applyCoupon, removeCoupon } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState("");
@@ -95,8 +95,17 @@ export default function CartPage() {
                       </div>
                     )}
                     {item.product_slug === "fomo-steel-bottle" && item.price_inr === 0 ? (
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="flex items-center gap-3 mt-3 flex-wrap animate-fade-in">
                         <Badge variant="default" className="text-xs bg-primary text-primary-foreground font-medium px-2 py-0.5">Free Gift Included!</Badge>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs h-7 gap-1 font-semibold rounded-lg hover:bg-primary hover:text-primary-foreground transition-all active:scale-95 duration-200 border-primary/30"
+                          onClick={() => addToCart("fomo-steel-bottle", { qty: 1, variant: "single" })}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add More (+ ₹300)
+                        </Button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 mt-3">
