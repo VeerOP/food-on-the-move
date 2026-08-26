@@ -59,12 +59,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState<string>("");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (isInitial = false) => {
     if (!user) {
       setItems([]);
       return;
     }
-    setLoading(true);
+    if (isInitial) setLoading(true);
     const { data, error } = await supabase
       .from("cart_items")
       .select("id, product_slug, product_name, product_image, price_inr, quantity, variant, pack_items")
@@ -86,7 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    refresh();
+    refresh(true);
   }, [refresh]);
 
   // Synchronizer for free FOMO Steel Bottle gift
@@ -94,9 +94,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user || loading) return;
 
     const syncFreeGift = async () => {
-      const fomoItem = items.find((i) => i.product_slug === "fomo-steel-bottle");
+      const fomoItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.price_inr === 0);
       const baseSubtotal = items
-        .filter((i) => i.product_slug !== "fomo-steel-bottle")
+        .filter((i) => !(i.product_slug === "fomo-steel-bottle" && i.price_inr === 0))
         .reduce((sum, item) => sum + item.quantity * item.price_inr, 0);
 
       // Reset user rejection if they drop below threshold
@@ -139,13 +139,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         await refresh();
       } else if (!shouldHaveGift && fomoItem) {
         // Optimistically remove
-        setItems((prev) => prev.filter((i) => i.product_slug !== "fomo-steel-bottle"));
+        setItems((prev) => prev.filter((i) => !(i.product_slug === "fomo-steel-bottle" && i.price_inr === 0)));
 
         await supabase
           .from("cart_items")
           .delete()
           .eq("user_id", user.id)
-          .eq("product_slug", "fomo-steel-bottle");
+          .eq("product_slug", "fomo-steel-bottle")
+          .eq("price_inr", 0);
         await refresh();
       } else if (fomoItem && fomoItem.quantity !== 1) {
         await supabase
@@ -192,7 +193,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Merge same-variant single items; keep mixed packs as separate lines
     if (variant === "single") {
-      const existing = items.find((i) => i.product_slug === slug && i.variant === "single");
+      const existing = items.find((i) => i.product_slug === slug && i.variant === "single" && i.price_inr === price);
       if (existing) {
         await updateQty(existing.id, existing.quantity + qty);
         return;
@@ -246,7 +247,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeItem = async (id: string) => {
     if (!user) return;
     const item = items.find((i) => i.id === id);
-    if (item && item.product_slug === "fomo-steel-bottle") {
+    if (item && item.product_slug === "fomo-steel-bottle" && item.price_inr === 0) {
       localStorage.setItem("rejected_free_gift", "true");
     }
     const { error } = await supabase

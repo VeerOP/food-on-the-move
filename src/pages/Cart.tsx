@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,14 +59,17 @@ export default function CartPage() {
         ) : (
           <div className="grid lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
-              {items.map((item) => (
-                <motion.div
-                  key={item.id}
-                  layout
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-card border border-border/50 rounded-2xl p-4 flex items-start gap-4"
-                >
+              <AnimatePresence mode="popLayout">
+                {items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-card border border-border/50 rounded-2xl p-4 flex items-start gap-4"
+                  >
                   {item.product_image && (
                     <img src={item.product_image} alt={item.product_name} className="w-20 h-20 object-contain flex-shrink-0" />
                   )}
@@ -91,7 +94,7 @@ export default function CartPage() {
                         </span>
                       </div>
                     )}
-                    {item.product_slug === "fomo-steel-bottle" ? (
+                    {item.product_slug === "fomo-steel-bottle" && item.price_inr === 0 ? (
                       <div className="flex items-center gap-2 mt-3">
                         <Badge variant="default" className="text-xs bg-primary text-primary-foreground font-medium px-2 py-0.5">Free Gift Included!</Badge>
                       </div>
@@ -129,6 +132,7 @@ export default function CartPage() {
                   </div>
                 </motion.div>
               ))}
+              </AnimatePresence>
             </div>
 
             <div className="bg-card border border-border/50 rounded-2xl p-6 h-fit sticky top-28">
