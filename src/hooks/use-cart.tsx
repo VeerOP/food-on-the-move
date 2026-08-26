@@ -176,9 +176,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     // Validate mixed pack size
+    let packItems = opts.packItems ?? [];
     if (variant !== "single") {
       const expected = VARIANT_META[variant].count;
-      const packItems = opts.packItems ?? [];
+      if (packItems.length === 0) {
+        packItems = Array(expected).fill(slug);
+      }
       if (packItems.length !== expected) {
         toast.error(`Select exactly ${expected} items for ${VARIANT_META[variant].label}`);
         return;
@@ -204,7 +207,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       price_inr: price,
       quantity: qty,
       variant,
-      pack_items: opts.packItems ?? [],
+      pack_items: packItems,
     });
     if (error) {
       toast.error(error.message);

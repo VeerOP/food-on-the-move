@@ -134,9 +134,11 @@ export default function CartPage() {
                   <span>Delivery</span>
                   <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
                 </div>
-                {amountToFree > 0 && (
-                  <p className="text-xs text-primary/80">
-                    Add ₹{amountToFree.toFixed(2)} more for FREE delivery
+                {subtotal < 2000 && (
+                  <p className="text-xs text-primary/80 leading-normal">
+                    {subtotal < 1000
+                      ? `Add ₹${(1000 - subtotal).toFixed(2)} more for FREE delivery in Mumbai (or ₹${(2000 - subtotal).toFixed(2)} for PAN India)`
+                      : `You have FREE delivery in Mumbai! Add ₹${(2000 - subtotal).toFixed(2)} more for FREE PAN India delivery.`}
                   </p>
                 )}
               </div>

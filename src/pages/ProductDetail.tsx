@@ -7,7 +7,6 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useCart } from "@/hooks/use-cart";
 import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
-import { BundleBuilder } from "@/components/BundleBuilder";
 import { cn } from "@/lib/utils";
 import {
   Carousel,
@@ -387,7 +386,6 @@ export default function ProductDetail() {
   const { addToCart, clearCart } = useCart();
   const navigate = useNavigate();
   const [variant, setVariant] = useState<Variant>("single");
-  const [builderOpen, setBuilderOpen] = useState(false);
   const [adding, setAdding] = useState(false);
 
   const currentPrice = catalogEntry ? variantPrice(variant, catalogEntry.slug) : 0;
@@ -397,7 +395,6 @@ export default function ProductDetail() {
     setAdding(true);
     await addToCart(catalogEntry.slug, { variant, packItems: packItems ?? [] });
     setAdding(false);
-    setBuilderOpen(false);
   };
 
   const handleBuyNow = async (packItems?: string[]) => {
@@ -406,21 +403,12 @@ export default function ProductDetail() {
     await clearCart();
     await addToCart(catalogEntry.slug, { variant, packItems: packItems ?? [] });
     setAdding(false);
-    setBuilderOpen(false);
     navigate("/checkout");
   };
 
   const onPrimaryClick = (buyNow: boolean) => {
-    if (variant === "single") {
-      buyNow ? handleBuyNow() : handleAdd();
-    } else {
-      // open builder; on confirm we'll add or buy now depending on last intent
-      setBuyNowIntent(buyNow);
-      setBuilderOpen(true);
-    }
+    buyNow ? handleBuyNow([]) : handleAdd([]);
   };
-
-  const [buyNowIntent, setBuyNowIntent] = useState(false);
 
 
   const location = useLocation();
@@ -656,16 +644,7 @@ export default function ProductDetail() {
         </div>
       </section>
 
-      {/* Bundle builder dialog for PO3 / PO4 */}
-      {variant !== "single" && (
-        <BundleBuilder
-          open={builderOpen}
-          onOpenChange={setBuilderOpen}
-          variant={variant}
-          submitting={adding}
-          onConfirm={(slugs) => (buyNowIntent ? handleBuyNow(slugs) : handleAdd(slugs))}
-        />
-      )}
+
 
 
       {/* Details Section */}

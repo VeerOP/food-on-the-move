@@ -16,6 +16,7 @@ import {
   geocodeAddress,
   computeDeliveryFee,
   FREE_DELIVERY_THRESHOLD_INR,
+  isMumbaiAddress,
 } from "@/lib/delivery";
 import { CATALOG, variantLabel } from "@/lib/catalog";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +44,7 @@ export default function CheckoutPage() {
   const [locating, setLocating] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "upi">("razorpay");
+  const paymentMethod = "razorpay";
 
   useEffect(() => {
     if (!user) navigate("/auth");
@@ -55,10 +56,11 @@ export default function CheckoutPage() {
     else setDistance(null);
   }, [coords]);
 
-  const withinRadius = distance !== null && distance <= DELIVERY_RADIUS_KM;
-  const deliveryFee = withinRadius ? computeDeliveryFee(subtotal) : 0;
+  const isMumbai = isMumbaiAddress(pincode, address);
+  const deliveryThreshold = isMumbai ? 1000 : 2000;
+  const deliveryFee = computeDeliveryFee(subtotal, pincode, address);
   const total = subtotal - discount + deliveryFee;
-  const amountToFree = Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
+  const amountToFree = Math.max(0, deliveryThreshold - subtotal);
 
   const useMyLocation = () => {
     if (!navigator.geolocation) {
@@ -109,11 +111,7 @@ export default function CheckoutPage() {
       return;
     }
     if (!coords) {
-      toast.error("Please verify your delivery location");
-      return;
-    }
-    if (!withinRadius) {
-      toast.error(`Sorry, we currently deliver only within a ${DELIVERY_RADIUS_KM} km radius of our kitchen.`);
+      toast.error("Please verify your address by clicking 'Verify address' first.");
       return;
     }
     if (!user) return;
@@ -238,78 +236,19 @@ export default function CheckoutPage() {
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`mt-4 rounded-xl p-4 flex items-start gap-3 ${
-                    withinRadius
-                      ? "bg-primary/10 border border-primary/30"
-                      : "bg-destructive/10 border border-destructive/30"
-                  }`}
+                  className="mt-4 rounded-xl p-4 flex items-start gap-3 bg-primary/10 border border-primary/30"
                 >
-                  {withinRadius ? (
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
-                  ) : (
-                    <XCircle className="w-5 h-5 text-destructive mt-0.5" />
-                  )}
+                  <CheckCircle2 className="w-5 h-5 text-primary mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium">
-                      {distance.toFixed(2)} km from {STORE.name}
+                    <p className="font-medium text-foreground">
+                      Address verified! {isMumbaiAddress(pincode, address) ? "Mumbai Delivery" : "PAN India Delivery"}
                     </p>
                     <p className="text-muted-foreground">
-                      {withinRadius
-                        ? `Great! You're inside our ${DELIVERY_RADIUS_KM} km delivery zone.`
-                        : `Sorry, we currently deliver only within a ${DELIVERY_RADIUS_KM} km radius of our kitchen.`}
+                      Estimated delivery time: <span className="font-semibold text-foreground">2-3 working days</span>.
                     </p>
                   </div>
                 </motion.div>
               )}
-            </div>
-
-            <div className="bg-card border border-border/50 rounded-2xl p-6">
-              <h2 className="font-display text-2xl mb-4">Payment Method</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("razorpay")}
-                  className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-32 transition-all duration-300 relative overflow-hidden group ${
-                    paymentMethod === "razorpay"
-                      ? "border-primary bg-primary/5 shadow-md shadow-primary/5"
-                      : "border-border/50 bg-card/50 hover:border-border/85"
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="font-display text-lg font-semibold text-foreground">Online Payment</span>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                      paymentMethod === "razorpay" ? "border-primary bg-primary" : "border-muted"
-                    }`}>
-                      {paymentMethod === "razorpay" && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-normal">
-                    Pay automatically with Cards, UPI, Netbanking, or Wallets via Razorpay. (Recommended)
-                  </p>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("upi")}
-                  className={`p-5 rounded-2xl border text-left flex flex-col justify-between h-32 transition-all duration-300 relative overflow-hidden group ${
-                    paymentMethod === "upi"
-                      ? "border-primary bg-primary/5 shadow-md shadow-primary/5"
-                      : "border-border/50 bg-card/50 hover:border-border/85"
-                  }`}
-                >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="font-display text-lg font-semibold text-foreground">Manual UPI QR</span>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                      paymentMethod === "upi" ? "border-primary bg-primary" : "border-muted"
-                    }`}>
-                      {paymentMethod === "upi" && <div className="w-1.5 h-1.5 rounded-full bg-background" />}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-normal">
-                    Scan our UPI QR code, transfer manually, and upload the payment screenshot.
-                  </p>
-                </button>
-              </div>
             </div>
 
             <p className="text-xs text-muted-foreground">
@@ -355,9 +294,9 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
-                <span>{withinRadius ? (deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`) : "—"}</span>
+                <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
               </div>
-              {withinRadius && amountToFree > 0 && (
+              {amountToFree > 0 && (
                 <p className="text-[11px] text-primary/80">
                   Add ₹{amountToFree.toFixed(2)} more for FREE delivery
                 </p>
@@ -372,14 +311,12 @@ export default function CheckoutPage() {
               size="lg"
               className="w-full"
               onClick={handleProceed}
-              disabled={submitting || !withinRadius}
+              disabled={submitting}
             >
-              {submitting ? "Creating order..." : paymentMethod === "razorpay" ? "Proceed to Payment" : "Pay with UPI"}
+              {submitting ? "Creating order..." : "Proceed to Payment"}
             </Button>
             <p className="text-[11px] text-muted-foreground text-center mt-3">
-              {paymentMethod === "razorpay"
-                ? "Cards, UPI, Netbanking, Wallets supported"
-                : "Manual UPI transfer · Screenshot confirmation required"}
+              Cards, UPI, Netbanking, Wallets supported
             </p>
           </div>
         </div>

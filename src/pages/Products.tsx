@@ -3,10 +3,16 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { CATALOG, CatalogProduct, ProductCategory } from "@/lib/catalog";
+import { CATALOG, CatalogProduct, ProductCategory, variantPrice } from "@/lib/catalog";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Eye, Sparkles, Filter, ArrowLeft } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const CATEGORIES: { id: ProductCategory | "all"; label: string }[] = [
   { id: "all", label: "All Products" },
@@ -160,14 +166,67 @@ export default function Products() {
 
                     {/* Action buttons */}
                     <div className="p-6 pt-0 flex gap-2">
-                      <Button
-                        onClick={(e) => handleAddToCart(product, e)}
-                        disabled={addingSlug === product.slug}
-                        className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl py-2.5 shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95"
-                      >
-                        <ShoppingCart className="w-3.5 h-3.5" />
-                        {addingSlug === product.slug ? "Adding..." : "Add to Cart"}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            disabled={addingSlug === product.slug}
+                            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl py-2.5 shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            {addingSlug === product.slug ? "Adding..." : "Add to Cart"}
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="center"
+                          className="w-56 mt-1 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-md shadow-xl p-1.5"
+                        >
+                          <DropdownMenuItem
+                            className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setAddingSlug(product.slug);
+                              await addToCart(product.slug, { qty: 1, variant: "single" });
+                              setAddingSlug(null);
+                            }}
+                          >
+                            <div className="flex justify-between w-full font-medium text-sm">
+                              <span>Single Pack</span>
+                              <span className="text-primary">₹{variantPrice("single", product.slug)}</span>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setAddingSlug(product.slug);
+                              await addToCart(product.slug, { qty: 1, variant: "po3", packItems: [] });
+                              setAddingSlug(null);
+                            }}
+                          >
+                            <div className="flex justify-between w-full font-medium text-sm">
+                              <span>Pack of 3</span>
+                              <span className="text-primary">₹{variantPrice("po3", product.slug)}</span>
+                            </div>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setAddingSlug(product.slug);
+                              await addToCart(product.slug, { qty: 1, variant: "po5", packItems: [] });
+                              setAddingSlug(null);
+                            }}
+                          >
+                            <div className="flex justify-between w-full font-medium text-sm">
+                              <span>Pack of 5</span>
+                              <span className="text-primary">₹{variantPrice("po5", product.slug)}</span>
+                            </div>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Link to={`/product/${product.slug}`} state={{ from: "/products" }}>
                         <Button
                           variant="outline"

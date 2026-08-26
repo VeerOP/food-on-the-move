@@ -7,12 +7,20 @@ export const STORE = {
 };
 
 // Configurable delivery constants
-export const DELIVERY_RADIUS_KM = 5;
-export const DELIVERY_FEE_INR = 200;
-export const FREE_DELIVERY_THRESHOLD_INR = 1000;
+export const DELIVERY_RADIUS_KM = 5; // retained for backwards compatibility references
+export const FREE_DELIVERY_THRESHOLD_INR = 1000; // default/Mumbai threshold
 
-export function computeDeliveryFee(subtotal: number): number {
-  return subtotal >= FREE_DELIVERY_THRESHOLD_INR ? 0 : DELIVERY_FEE_INR;
+export function isMumbaiAddress(pincode: string, address: string): boolean {
+  const pin = String(pincode).trim();
+  const addr = String(address).toLowerCase();
+  return pin.startsWith("400") || addr.includes("mumbai");
+}
+
+export function computeDeliveryFee(subtotal: number, pincode?: string, address?: string): number {
+  const isMumbai = (pincode && address) ? isMumbaiAddress(pincode, address) : true;
+  const threshold = isMumbai ? 1000 : 2000;
+  const fee = isMumbai ? 100 : 200;
+  return subtotal >= threshold ? 0 : fee;
 }
 
 // Haversine distance in km

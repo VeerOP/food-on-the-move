@@ -196,8 +196,17 @@ export const VARIANT_META: Record<Variant, { label: string; short: string; count
 };
 
 export function variantPrice(variant: Variant, productSlug: string): number {
-  if (variant === "single") return CATALOG[productSlug]?.price ?? 0;
-  return VARIANT_META[variant].price;
+  const basePrice = CATALOG[productSlug]?.price ?? 0;
+  if (variant === "single") return basePrice;
+  
+  const discountRatio = 150 / 180; // ~16.67% discount
+  if (variant === "po3") {
+    return Math.round((3 * basePrice * discountRatio) / 5) * 5;
+  }
+  if (variant === "po5") {
+    return Math.round((5 * basePrice * discountRatio) / 5) * 5;
+  }
+  return basePrice;
 }
 
 export function variantLabel(variant: Variant): string {

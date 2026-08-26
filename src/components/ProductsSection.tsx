@@ -11,7 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BundleBuilder } from "@/components/BundleBuilder";
+import { variantPrice } from "@/lib/catalog";
+
 import productCorn from "@/assets/product-corn-main.png";
 import productJowar from "@/assets/product-jowar-main.png";
 import productQuinoa from "@/assets/product-quinoa-main.png";
@@ -124,16 +125,7 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const { addToCart } = useCart();
-  const [builderOpen, setBuilderOpen] = useState(false);
-  const [selectedVariant, setSelectedVariant] = useState<"po3" | "po5">("po3");
-  const [adding, setAdding] = useState(false);
 
-  const handleConfirmPack = async (packSlugs: string[]) => {
-    setAdding(true);
-    await addToCart(product.slug, { variant: selectedVariant, packItems: packSlugs });
-    setAdding(false);
-    setBuilderOpen(false);
-  };
 
   return (
     <>
@@ -212,35 +204,33 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
                   >
                     <div className="flex justify-between w-full font-medium text-sm">
                       <span>Single Pack</span>
-                      <span className="text-primary">₹60</span>
+                      <span className="text-primary">₹{variantPrice("single", product.slug)}</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setSelectedVariant("po3");
-                      setBuilderOpen(true);
+                      await addToCart(product.slug, { qty: 1, variant: "po3", packItems: [] });
                     }}
                   >
                     <div className="flex justify-between w-full font-medium text-sm">
                       <span>Pack of 3</span>
-                      <span className="text-primary">₹150</span>
+                      <span className="text-primary">₹{variantPrice("po3", product.slug)}</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setSelectedVariant("po5");
-                      setBuilderOpen(true);
+                      await addToCart(product.slug, { qty: 1, variant: "po5", packItems: [] });
                     }}
                   >
                     <div className="flex justify-between w-full font-medium text-sm">
                       <span>Pack of 5</span>
-                      <span className="text-primary">₹250</span>
+                      <span className="text-primary">₹{variantPrice("po5", product.slug)}</span>
                     </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -253,16 +243,7 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
         </motion.div>
       </Link>
 
-      {/* Bundle Builder Dialog */}
-      {builderOpen && (
-        <BundleBuilder
-          open={builderOpen}
-          onOpenChange={setBuilderOpen}
-          variant={selectedVariant}
-          submitting={adding}
-          onConfirm={handleConfirmPack}
-        />
-      )}
+
     </>
   );
 }
@@ -310,19 +291,20 @@ export function ProductsSection() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-14 text-center"
         >
-          <Link to="/products">
-            <Button 
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-bold px-8 py-6 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 gap-3 group"
-            >
+          <Button 
+            asChild
+            size="lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-bold px-8 py-6 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 gap-3 group"
+          >
+            <Link to="/products">
               View All Products
               <span className="bg-primary-foreground/20 rounded-full p-1 group-hover:translate-x-1 transition-transform">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </span>
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </motion.div>
 
         {/* Bollywood Tag */}

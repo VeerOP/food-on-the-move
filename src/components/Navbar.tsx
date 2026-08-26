@@ -237,6 +237,13 @@ export function Navbar() {
                   return (
                     <div key={link.name} className="flex flex-col gap-2 pl-3 border-l-2 border-primary/30 py-1">
                       <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Products</span>
+                      <Link
+                        to="/products"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-lg font-medium text-primary hover:text-primary/80 transition-colors py-1 pl-2 font-semibold"
+                      >
+                        All Products Catalog
+                      </Link>
                       <a
                         href="#products"
                         onClick={(e) => {

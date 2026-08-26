@@ -388,7 +388,7 @@ export default function PayPage() {
           className="bg-card border border-border/50 rounded-3xl p-8 text-center"
         >
           <h1 className="font-display text-4xl mb-2">
-            Pay with <span className="text-gradient">{order.payment_method === "razorpay" ? "Razorpay" : "UPI"}</span>
+            Pay with <span className="text-gradient">Razorpay</span>
           </h1>
           <p className="text-muted-foreground mb-6">
             Order #{order.id.slice(0, 8)} · Amount: <span className="text-foreground font-semibold">₹{order.total_inr.toFixed(2)}</span>
@@ -449,7 +449,7 @@ export default function PayPage() {
                 </div>
               </div>
             </div>
-          ) : order.payment_method === "razorpay" ? (
+          ) : (
             <div className="space-y-6 py-4">
               <div className="flex flex-col items-center justify-center p-8 bg-card border border-border/50 rounded-2xl">
                 <CreditCard className="w-16 h-16 text-primary mb-4 animate-pulse" />
@@ -474,120 +474,7 @@ export default function PayPage() {
                   )}
                 </Button>
               </div>
-
-              <div className="border-t border-border/50 pt-6">
-                <p className="text-xs text-muted-foreground mb-3">Having trouble with automatic payment?</p>
-                <Button
-                  variant="outline"
-                  className="w-full text-xs py-4"
-                  onClick={() => switchPaymentMethod("upi")}
-                  disabled={confirming}
-                >
-                  Switch to Manual UPI QR Transfer
-                </Button>
-              </div>
             </div>
-          ) : (
-            <>
-              {qrDataUrl && (
-                <div className="bg-white p-4 rounded-2xl inline-block mb-4">
-                  <img src={qrDataUrl} alt="UPI QR" className="w-64 h-64" />
-                </div>
-              )}
-              <p className="text-sm text-muted-foreground mb-2">Scan with any UPI app</p>
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <code className="bg-muted px-3 py-1 rounded text-sm">{UPI_PAYEE_VPA}</code>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    navigator.clipboard.writeText(UPI_PAYEE_VPA);
-                    toast.success("UPI ID copied");
-                  }}
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mb-6">Payee: {UPI_PAYEE_NAME}</p>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                <Button variant="outline" asChild>
-                  <a href={buildUpiUri({ amount: order.total_inr, transactionNote: `Order ${order.id.slice(0,8)}`, transactionRef: order.id.slice(0,12), app: "gpay" })}>
-                    Pay with GPay
-                  </a>
-                </Button>
-                <Button variant="outline" asChild>
-                  <a href={buildUpiUri({ amount: order.total_inr, transactionNote: `Order ${order.id.slice(0,8)}`, transactionRef: order.id.slice(0,12), app: "phonepe" })}>
-                    Pay with PhonePe
-                  </a>
-                </Button>
-                <Button variant="outline" asChild>
-                  <a href={buildUpiUri({ amount: order.total_inr, transactionNote: `Order ${order.id.slice(0,8)}`, transactionRef: order.id.slice(0,12), app: "paytm" })}>
-                    Pay with Paytm
-                  </a>
-                </Button>
-                <Button variant="outline" asChild>
-                  <a href={buildUpiUri({ amount: order.total_inr, transactionNote: `Order ${order.id.slice(0,8)}`, transactionRef: order.id.slice(0,12), app: "bhim" })}>
-                    Pay with BHIM
-                  </a>
-                </Button>
-              </div>
-
-              <Button variant="hero" size="lg" className="w-full mb-6" asChild>
-                <a href={upiUri}>
-                  <Smartphone className="w-4 h-4 mr-2" /> Open any UPI app
-                </a>
-              </Button>
-              <p className="text-xs text-muted-foreground mb-6">
-                Tip: app buttons work on mobile devices with the respective app installed. On desktop, scan the QR with your phone.
-              </p>
-
-              <div className="border-t border-border/50 pt-6 text-left space-y-4">
-                <Label htmlFor="screenshot" className="font-semibold text-foreground block">
-                  After paying, upload a screenshot of your transaction confirmation
-                </Label>
-                <div className="mt-2 flex flex-col items-center justify-center border-2 border-dashed border-border/60 rounded-2xl p-6 bg-card/30 hover:border-primary/50 transition-colors relative">
-                  <input
-                    id="screenshot"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  {screenshot ? (
-                    <div className="text-center space-y-3">
-                      <img src={screenshot} alt="Payment Preview" className="max-h-40 rounded-xl border border-border mx-auto object-contain" />
-                      <p className="text-xs text-primary font-medium">Click or drag to replace screenshot</p>
-                    </div>
-                  ) : (
-                    <div className="text-center space-y-2 pointer-events-none">
-                      <p className="text-sm text-muted-foreground">Click to upload or drag & drop image</p>
-                      <p className="text-xs text-muted-foreground/60">Supports PNG, JPG, JPEG up to 5MB</p>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  variant="hero"
-                  className="w-full mt-2"
-                  onClick={confirmPayment}
-                  disabled={confirming || !screenshot}
-                >
-                  {confirming ? "Uploading & Confirming…" : "I have paid — submit screenshot"}
-                </Button>
-
-                <div className="border-t border-border/50 pt-4 text-center">
-                  <p className="text-xs text-muted-foreground mb-2">Prefer paying automatically?</p>
-                  <Button
-                    variant="outline"
-                    className="w-full text-xs py-4"
-                    onClick={() => switchPaymentMethod("razorpay")}
-                    disabled={confirming}
-                  >
-                    Switch to Online Payment (Razorpay)
-                  </Button>
-                </div>
-              </div>
-            </>
           )}
         </motion.div>
       </div>
