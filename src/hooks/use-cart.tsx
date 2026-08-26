@@ -94,6 +94,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user || loading) return;
 
     const syncFreeGift = async () => {
+      // Legacy cleanup: delete any stale "single" variant steel bottle with price 0
+      const legacyItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.variant === "single" && i.price_inr === 0);
+      if (legacyItem) {
+        await supabase.from("cart_items").delete().eq("id", legacyItem.id);
+        await refresh();
+        return;
+      }
+
       const fomoItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.variant === "free");
       const baseSubtotal = items
         .filter((i) => i.variant !== "free")
