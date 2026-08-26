@@ -133,7 +133,7 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
         <motion.div
           ref={ref}
           initial={{ opacity: 0, y: 80 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: index * 0.15 }}
           className="group relative cursor-pointer h-full"
         >
@@ -262,7 +262,7 @@ export function ProductsSection() {
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
@@ -287,7 +287,7 @@ export function ProductsSection() {
         {/* View All Products CTA */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-14 text-center"
         >
@@ -310,7 +310,7 @@ export function ProductsSection() {
         {/* Bollywood Tag */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
-          animate={isInView ? { opacity: 1, scale: 1 } : {}}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.8 }}
           className="mt-12 text-center"
         >
