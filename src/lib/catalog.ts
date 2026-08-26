@@ -29,6 +29,7 @@ export type CatalogProduct = {
   category: ProductCategory;
   moq?: number;  // Minimum order quantity if applicable
   isHamper?: boolean;
+  isSoldOut?: boolean;
 };
 
 export const CATALOG: Record<string, CatalogProduct> = {
@@ -71,6 +72,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: doubleChocolateCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
   },
   "millet-baklava": {
     slug: "millet-baklava",
@@ -79,6 +81,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: milletBaklava,
     price: 245,
     category: "sweets",
+    isSoldOut: true,
   },
   "kunafa": {
     slug: "kunafa",
@@ -87,6 +90,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: kunafa,
     price: 245,
     category: "sweets",
+    isSoldOut: true,
   },
   "almond-sticks": {
     slug: "almond-sticks",
@@ -95,6 +99,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: almondSticks,
     price: 310,
     category: "sticks",
+    isSoldOut: true,
   },
   "chocochips-sticks": {
     slug: "chocochips-sticks",
@@ -103,6 +108,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: chocochipsSticks,
     price: 310,
     category: "sticks",
+    isSoldOut: true,
   },
   "vanilla-chocolate-cookies": {
     slug: "vanilla-chocolate-cookies",
@@ -111,6 +117,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: vanillaChocolateCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
   },
   "coffee-walnut-cookies": {
     slug: "coffee-walnut-cookies",
@@ -119,6 +126,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: coffeeWalnutCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
   },
   "jowaar-jaggery-cookies": {
     slug: "jowaar-jaggery-cookies",
@@ -127,6 +135,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: jowaarJaggeryCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
   },
   "multigrain-jaggery-cookies": {
     slug: "multigrain-jaggery-cookies",
@@ -135,6 +144,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: multigrainJaggeryCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
   },
   "bajra-jaggery-cookies": {
     slug: "bajra-jaggery-cookies",
@@ -143,6 +153,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: bajraJaggeryCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
   },
   "fomo-steel-bottle": {
     slug: "fomo-steel-bottle",
@@ -151,36 +162,40 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: fomoBottle,
     price: 300,
     category: "accessories",
+    isSoldOut: true,
   },
   "hamper-classic": {
     slug: "hamper-classic",
-    name: "Classic Puffs Hamper",
-    tagline: "Assorted Gift Box of All Four Puff Varieties",
+    name: "Classic Gift Box",
+    tagline: "Perfect for Gifting",
     image: hamperClassic,
-    price: 420,
+    price: 600,
     moq: 5,
     isHamper: true,
     category: "hampers",
+    isSoldOut: true,
   },
   "hamper-fitness": {
     slug: "hamper-fitness",
-    name: "Fitness Lover's Hamper",
-    tagline: "Curated Box of Healthy Quinoa & Jowar Puffs",
+    name: "Fitness Gift Box",
+    tagline: "Healthy & Tasty Gifting",
     image: hamperFitness,
-    price: 650,
-    moq: 8,
+    price: 900,
+    moq: 5,
     isHamper: true,
     category: "hampers",
+    isSoldOut: true,
   },
   "hamper-party": {
     slug: "hamper-party",
-    name: "Party Starter Mega Hamper",
-    tagline: "Ultimate Celebration Pack (12 Full-Size Packs)",
+    name: "Bollywood Party Hamper",
+    tagline: "Ultimate Celebration Hamper",
     image: hamperParty,
     price: 1200,
     moq: 3,
     isHamper: true,
     category: "hampers",
+    isSoldOut: true,
   },
 };
 

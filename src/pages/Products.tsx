@@ -132,7 +132,7 @@ export default function Products() {
                     transition={{ duration: 0.3 }}
                     className="group relative bg-card border border-border/50 rounded-3xl overflow-hidden card-hover flex flex-col justify-between"
                   >
-                    <Link to={`/product/${product.slug}`} state={{ from: "/products" }} className="block">
+                     <Link to={`/product/${product.slug}`} state={{ from: "/products" }} className="block">
                       {/* Image container */}
                       <div className="relative h-64 p-6 bg-gradient-to-b from-primary/5 to-transparent flex items-center justify-center overflow-hidden">
                         {/* MRP Badge */}
@@ -144,6 +144,13 @@ export default function Products() {
                         <div className="absolute top-4 left-4 z-10 bg-background/80 backdrop-blur-md border border-border/50 text-foreground text-[10px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-lg">
                           {product.category}
                         </div>
+
+                        {/* Sold Out Badge */}
+                        {product.isSoldOut && (
+                          <div className="absolute top-14 left-4 z-10 bg-destructive/90 backdrop-blur-md text-destructive-foreground text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-lg">
+                            Sold Out
+                          </div>
+                        )}
 
                         {/* Image */}
                         <img
@@ -166,8 +173,16 @@ export default function Products() {
 
                     {/* Action buttons */}
                     <div className="p-6 pt-0 flex gap-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                      {product.isSoldOut ? (
+                        <Button
+                          disabled
+                          className="flex-1 bg-muted text-muted-foreground text-xs font-bold rounded-xl py-2.5 flex items-center justify-center cursor-not-allowed border border-border/55"
+                        >
+                          Sold Out
+                        </Button>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                           <Button
                             disabled={addingSlug === product.slug}
                             className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl py-2.5 shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
@@ -227,7 +242,8 @@ export default function Products() {
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                      <Link to={`/product/${product.slug}`} state={{ from: "/products" }}>
+                    )}
+                    <Link to={`/product/${product.slug}`} state={{ from: "/products" }}>
                         <Button
                           variant="outline"
                           size="icon"

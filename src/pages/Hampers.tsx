@@ -174,41 +174,55 @@ export default function HampersPage() {
                     </div>
                     
                     {/* Quantity selectors */}
-                    <div className="flex items-center gap-3">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="w-8 h-8 rounded-lg"
-                        onClick={() => handleDecrement(product.slug, moq)}
-                        disabled={currentQty <= moq}
-                      >
-                        <Minus className="w-3.5 h-3.5" />
-                      </Button>
-                      <span className="w-8 text-center font-semibold text-foreground">{currentQty}</span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="w-8 h-8 rounded-lg"
-                        onClick={() => handleIncrement(product.slug)}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
+                    {!product.isSoldOut && (
+                      <div className="flex items-center gap-3">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="w-8 h-8 rounded-lg"
+                          onClick={() => handleDecrement(product.slug, moq)}
+                          disabled={currentQty <= moq}
+                        >
+                          <Minus className="w-3.5 h-3.5" />
+                        </Button>
+                        <span className="w-8 text-center font-semibold text-foreground">{currentQty}</span>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="w-8 h-8 rounded-lg"
+                          onClick={() => handleIncrement(product.slug)}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Call to action */}
                   <div className="flex flex-col gap-2">
-                    <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
-                      <span>Total Value:</span>
-                      <span className="font-semibold text-foreground">₹{totalPrice}</span>
-                    </div>
-                    <Button
-                      onClick={() => handleAdd(product)}
-                      variant="hero"
-                      className="w-full py-5 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                    >
-                      <ShoppingCart className="w-4 h-4" /> Add Hampers to Cart
-                    </Button>
+                    {product.isSoldOut ? (
+                      <Button
+                        disabled
+                        variant="outline"
+                        className="w-full py-5 rounded-2xl font-semibold flex items-center justify-center bg-muted text-muted-foreground cursor-not-allowed border border-border/55"
+                      >
+                        Sold Out
+                      </Button>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-xs text-muted-foreground px-1 mb-1">
+                          <span>Total Value:</span>
+                          <span className="font-semibold text-foreground">₹{totalPrice}</span>
+                        </div>
+                        <Button
+                          onClick={() => handleAdd(product)}
+                          variant="hero"
+                          className="w-full py-5 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                        >
+                          <ShoppingCart className="w-4 h-4" /> Add Hampers to Cart
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </motion.div>

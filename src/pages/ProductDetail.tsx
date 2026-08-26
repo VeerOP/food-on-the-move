@@ -518,9 +518,16 @@ export default function ProductDetail() {
               <span className={`${product.accentColor} font-semibold uppercase tracking-wider text-sm`}>
                 {product.tagline}
               </span>
-              <h1 className="font-display text-5xl md:text-6xl lg:text-7xl mt-2 mb-6 text-foreground">
-                {product.name}
-              </h1>
+              <div className="flex items-center gap-4 flex-wrap mb-6">
+                <h1 className="font-display text-5xl md:text-6xl lg:text-7xl mt-2 text-foreground">
+                  {product.name}
+                </h1>
+                {catalogEntry?.isSoldOut && (
+                  <span className="bg-destructive text-destructive-foreground text-sm font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-xl shadow-md mt-2">
+                    Sold Out
+                  </span>
+                )}
+              </div>
               <p className="text-muted-foreground text-lg leading-relaxed mb-8">
                 {product.description}
               </p>
@@ -603,29 +610,39 @@ export default function ProductDetail() {
                 )}
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {catalogEntry && (
-                    <>
-                      <Button
-                        variant="hero"
-                        size="lg"
-                        className="w-full sm:w-auto"
-                        onClick={() => onPrimaryClick(false)}
-                        disabled={adding}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Add to Cart — ₹{currentPrice}
-                      </Button>
-                      <Button
-                        variant="glow"
-                        size="lg"
-                        className="w-full sm:w-auto"
-                        onClick={() => onPrimaryClick(true)}
-                        disabled={adding}
-                      >
-                        <ZapIcon className="w-4 h-4 mr-2" />
-                        Buy Now
-                      </Button>
-                    </>
+                  {catalogEntry?.isSoldOut ? (
+                    <Button
+                      disabled
+                      size="lg"
+                      className="w-full sm:w-auto bg-muted text-muted-foreground cursor-not-allowed border border-border/55"
+                    >
+                      Sold Out
+                    </Button>
+                  ) : (
+                    catalogEntry && (
+                      <>
+                        <Button
+                          variant="hero"
+                          size="lg"
+                          className="w-full sm:w-auto"
+                          onClick={() => onPrimaryClick(false)}
+                          disabled={adding}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Add to Cart — ₹{currentPrice}
+                        </Button>
+                        <Button
+                          variant="glow"
+                          size="lg"
+                          className="w-full sm:w-auto"
+                          onClick={() => onPrimaryClick(true)}
+                          disabled={adding}
+                        >
+                          <ZapIcon className="w-4 h-4 mr-2" />
+                          Buy Now
+                        </Button>
+                      </>
+                    )
                   )}
                   <Button
                     variant="outline"
