@@ -291,20 +291,17 @@ export function ProductsSection() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-14 text-center"
         >
-          <Button 
-            asChild
-            size="lg"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground text-base font-bold px-8 py-6 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 gap-3 group"
+          <a
+            href="#/products"
+            className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground text-base font-bold px-8 py-6 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 gap-3 group cursor-pointer"
           >
-            <Link to="/products">
-              View All Products
-              <span className="bg-primary-foreground/20 rounded-full p-1 group-hover:translate-x-1 transition-transform">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </span>
-            </Link>
-          </Button>
+            View All Products
+            <span className="bg-primary-foreground/20 rounded-full p-1 group-hover:translate-x-1 transition-transform">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </span>
+          </a>
         </motion.div>
 
         {/* Bollywood Tag */}
