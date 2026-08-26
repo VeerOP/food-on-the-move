@@ -291,8 +291,8 @@ export function ProductsSection() {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-14 text-center"
         >
-          <a
-            href="#/products"
+          <Link
+            to="/products"
             className="inline-flex items-center justify-center bg-primary hover:bg-primary/90 text-primary-foreground text-base font-bold px-8 py-6 rounded-2xl shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 gap-3 group cursor-pointer"
           >
             View All Products
@@ -301,7 +301,7 @@ export function ProductsSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
               </svg>
             </span>
-          </a>
+          </Link>
         </motion.div>
 
         {/* Bollywood Tag */}
