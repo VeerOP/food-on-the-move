@@ -75,7 +75,14 @@ export default function CartPage() {
                       <h3 className="font-display text-xl">{item.product_name}</h3>
                       <Badge variant="secondary" className="text-xs">{variantLabel(item.variant)}</Badge>
                     </div>
-                    <p className="text-muted-foreground text-sm">₹{item.price_inr.toFixed(2)} each</p>
+                    {item.price_inr === 0 ? (
+                      <p className="text-muted-foreground text-sm">
+                        <span className="line-through mr-1.5 text-muted-foreground/60">₹300.00</span>
+                        <span className="text-primary font-semibold">FREE</span>
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">₹{item.price_inr.toFixed(2)} each</p>
+                    )}
                     {item.pack_items && item.pack_items.length > 0 && (
                       <div className="mt-2 flex items-start gap-2 text-xs text-muted-foreground">
                         <Package className="w-3 h-3 mt-0.5 flex-shrink-0" />
@@ -107,7 +114,14 @@ export default function CartPage() {
                   </div>
                   <div className="text-right flex flex-col items-end justify-between h-full gap-2">
                     <p className="font-semibold whitespace-nowrap">
-                      {item.product_slug === "fomo-steel-bottle" ? "FREE" : `₹${(item.price_inr * item.quantity).toFixed(2)}`}
+                      {item.price_inr === 0 ? (
+                        <>
+                          <span className="line-through text-xs text-muted-foreground mr-1.5 font-normal">₹300.00</span>
+                          <span className="text-primary font-bold">FREE</span>
+                        </>
+                      ) : (
+                        `₹${(item.price_inr * item.quantity).toFixed(2)}`
+                      )}
                     </p>
                     <Button size="icon" variant="ghost" onClick={() => removeItem(item.id)}>
                       <Trash2 className="w-4 h-4 text-destructive" />

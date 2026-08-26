@@ -276,7 +276,16 @@ export default function CheckoutPage() {
                         </div>
                       )}
                     </div>
-                    <span className="whitespace-nowrap">₹{(i.price_inr * i.quantity).toFixed(2)}</span>
+                    <span className="whitespace-nowrap">
+                      {i.price_inr === 0 ? (
+                        <>
+                          <span className="line-through text-xs text-muted-foreground mr-1.5 font-normal">₹300.00</span>
+                          <span className="text-primary font-bold">FREE</span>
+                        </>
+                      ) : (
+                        `₹${(i.price_inr * i.quantity).toFixed(2)}`
+                      )}
+                    </span>
                   </div>
                 </div>
               ))}

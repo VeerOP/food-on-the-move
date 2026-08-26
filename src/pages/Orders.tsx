@@ -110,7 +110,16 @@ export default function OrdersPage() {
                   {o.order_items.map((it, idx) => (
                     <div key={idx} className="flex justify-between">
                       <span className="text-muted-foreground">{it.product_name} × {it.quantity}</span>
-                      <span>₹{it.line_total_inr.toFixed(2)}</span>
+                      <span>
+                        {it.line_total_inr === 0 ? (
+                          <>
+                            <span className="line-through text-xs text-muted-foreground mr-1.5 font-normal">₹300.00</span>
+                            <span className="text-primary font-bold">FREE</span>
+                          </>
+                        ) : (
+                          `₹${it.line_total_inr.toFixed(2)}`
+                        )}
+                      </span>
                     </div>
                   ))}
                 </div>

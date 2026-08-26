@@ -149,7 +149,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     name: "FOMO Steel Bottle",
     tagline: "Premium Stainless Steel Bottle",
     image: fomoBottle,
-    price: 250,
+    price: 300,
     category: "accessories",
   },
   "hamper-classic": {
