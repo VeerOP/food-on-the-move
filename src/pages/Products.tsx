@@ -145,10 +145,12 @@ export default function Products() {
                           {product.category}
                         </div>
 
-                        {/* Sold Out Badge */}
+                        {/* Sold Out Backdrop and Stamp Overlay */}
                         {product.isSoldOut && (
-                          <div className="absolute top-14 left-4 z-10 bg-destructive/90 backdrop-blur-md text-destructive-foreground text-[10px] uppercase tracking-wider font-extrabold px-2.5 py-1 rounded-lg">
-                            Sold Out
+                          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-20 flex items-center justify-center pointer-events-none">
+                            <span className="border-4 border-destructive text-destructive font-display text-2xl font-black uppercase tracking-widest px-4 py-2 rounded-xl rotate-[-12deg] shadow-2xl select-none bg-black/45">
+                              Sold Out
+                            </span>
                           </div>
                         )}
 
