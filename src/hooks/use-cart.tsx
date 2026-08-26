@@ -94,9 +94,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!user || loading) return;
 
     const syncFreeGift = async () => {
-      const fomoItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.price_inr === 0);
+      const fomoItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.variant === "free");
       const baseSubtotal = items
-        .filter((i) => !(i.product_slug === "fomo-steel-bottle" && i.price_inr === 0))
+        .filter((i) => i.variant !== "free")
         .reduce((sum, item) => sum + item.quantity * item.price_inr, 0);
 
       // Reset user rejection if they drop below threshold
@@ -121,7 +121,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             product_image: product.image,
             price_inr: 0,
             quantity: 1,
-            variant: "single",
+            variant: "free",
             pack_items: [],
           },
         ]);
@@ -133,20 +133,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
           product_image: product.image,
           price_inr: 0,
           quantity: 1,
-          variant: "single",
+          variant: "free",
           pack_items: [],
         });
         await refresh();
       } else if (!shouldHaveGift && fomoItem) {
         // Optimistically remove
-        setItems((prev) => prev.filter((i) => !(i.product_slug === "fomo-steel-bottle" && i.price_inr === 0)));
+        setItems((prev) => prev.filter((i) => i.variant !== "free"));
 
         await supabase
           .from("cart_items")
           .delete()
           .eq("user_id", user.id)
           .eq("product_slug", "fomo-steel-bottle")
-          .eq("price_inr", 0);
+          .eq("variant", "free");
         await refresh();
       } else if (fomoItem && fomoItem.quantity !== 1) {
         await supabase
@@ -247,7 +247,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeItem = async (id: string) => {
     if (!user) return;
     const item = items.find((i) => i.id === id);
-    if (item && item.product_slug === "fomo-steel-bottle" && item.price_inr === 0) {
+    if (item && item.variant === "free") {
       localStorage.setItem("rejected_free_gift", "true");
     }
     const { error } = await supabase

@@ -187,15 +187,17 @@ export const CATALOG: Record<string, CatalogProduct> = {
 export const getProduct = (slug: string) => CATALOG[slug];
 
 // ---------- Variants ----------
-export type Variant = "single" | "po3" | "po5";
+export type Variant = "single" | "po3" | "po5" | "free";
 
 export const VARIANT_META: Record<Variant, { label: string; short: string; count: number; price: number }> = {
   single: { label: "Single", short: "×1", count: 1, price: 0 /* uses product.price */ },
   po3:    { label: "Pack of 3", short: "PO3", count: 3, price: 150 },
   po5:    { label: "Pack of 5", short: "PO5", count: 5, price: 250 },
+  free:   { label: "Free Gift", short: "Free", count: 1, price: 0 },
 };
 
 export function variantPrice(variant: Variant, productSlug: string): number {
+  if (variant === "free") return 0;
   const basePrice = CATALOG[productSlug]?.price ?? 0;
   if (variant === "single") return basePrice;
   

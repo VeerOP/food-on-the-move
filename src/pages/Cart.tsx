@@ -78,7 +78,7 @@ export default function CartPage() {
                       <h3 className="font-display text-xl">{item.product_name}</h3>
                       <Badge variant="secondary" className="text-xs">{variantLabel(item.variant)}</Badge>
                     </div>
-                    {item.price_inr === 0 ? (
+                    {item.variant === "free" ? (
                       <p className="text-muted-foreground text-sm">
                         <span className="line-through mr-1.5 text-muted-foreground/60">₹300.00</span>
                         <span className="text-primary font-semibold">FREE</span>
@@ -94,7 +94,7 @@ export default function CartPage() {
                         </span>
                       </div>
                     )}
-                    {item.product_slug === "fomo-steel-bottle" && item.price_inr === 0 ? (
+                    {item.variant === "free" ? (
                       <div className="flex items-center gap-3 mt-3 flex-wrap animate-fade-in">
                         <Badge variant="default" className="text-xs bg-primary text-primary-foreground font-medium px-2 py-0.5">Free Gift Included!</Badge>
                         <Button
@@ -126,7 +126,7 @@ export default function CartPage() {
                   </div>
                   <div className="text-right flex flex-col items-end justify-between h-full gap-2">
                     <p className="font-semibold whitespace-nowrap">
-                      {item.price_inr === 0 ? (
+                      {item.variant === "free" ? (
                         <>
                           <span className="line-through text-xs text-muted-foreground mr-1.5 font-normal">₹300.00</span>
                           <span className="text-primary font-bold">FREE</span>

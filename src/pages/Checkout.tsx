@@ -277,7 +277,7 @@ export default function CheckoutPage() {
                       )}
                     </div>
                     <span className="whitespace-nowrap">
-                      {i.price_inr === 0 ? (
+                      {i.variant === "free" ? (
                         <>
                           <span className="line-through text-xs text-muted-foreground mr-1.5 font-normal">₹300.00</span>
                           <span className="text-primary font-bold">FREE</span>
