@@ -59,7 +59,7 @@ export default function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: { full_name: name || email },
       },
     });
@@ -70,9 +70,7 @@ export default function AuthPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const redirectUrl = window.location.hostname.includes("github.io")
-      ? "https://veerop.github.io/food-on-the-move/"
-      : `${window.location.origin}${window.location.pathname}`;
+    const redirectUrl = `${window.location.origin}/auth`;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
