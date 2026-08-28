@@ -17,6 +17,8 @@ import almondSticks from "@/assets/almond-sticks.jpeg";
 import kunafa from "@/assets/kunafa.jpeg";
 import milletBaklava from "@/assets/millet-baklava.jpeg";
 import doubleChocolateCookies from "@/assets/double-chocolate-cookies.jpeg";
+import nachniJaggeryCookies from "@/assets/nachni-jaggery-cookies.jpeg";
+import oatsSticks from "@/assets/oats-sticks.jpeg";
 
 export type ProductCategory = "puffs" | "sweets" | "sticks" | "cookies" | "accessories" | "hampers";
 
@@ -153,6 +155,24 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: bajraJaggeryCookies,
     price: 310,
     category: "cookies",
+    isSoldOut: true,
+  },
+  "nachni-jaggery-cookies": {
+    slug: "nachni-jaggery-cookies",
+    name: "Nachni Jaggery Cookies",
+    tagline: "Goodness of Millets & Pure Jaggery",
+    image: nachniJaggeryCookies,
+    price: 310,
+    category: "cookies",
+    isSoldOut: true,
+  },
+  "oats-sticks": {
+    slug: "oats-sticks",
+    name: "Oats Sticks",
+    tagline: "Crunchy & Delicious",
+    image: oatsSticks,
+    price: 310,
+    category: "sticks",
     isSoldOut: true,
   },
   "fomo-steel-bottle": {
