@@ -83,11 +83,15 @@ export default function CheckoutPage() {
   };
 
   const verifyAddress = async () => {
-    const query = [address, landmark, pincode, "Mumbai"].filter(Boolean).join(", ");
     if (!address.trim()) {
       toast.error("Enter an address first");
       return;
     }
+    if (!pincode.trim()) {
+      toast.error("Enter a pincode first");
+      return;
+    }
+    const query = [address, landmark, pincode, "Mumbai"].filter(Boolean).join(", ");
     setGeocoding(true);
     const result = await geocodeAddress(query);
     setGeocoding(false);
@@ -188,12 +192,16 @@ export default function CheckoutPage() {
               <h2 className="font-display text-2xl mb-4">Contact</h2>
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Full name</Label>
-                  <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
+                  <Label htmlFor="name" className="flex items-center gap-1">
+                    Full name <span className="text-destructive font-bold">*</span>
+                  </Label>
+                  <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter full name" />
                 </div>
                 <div>
-                  <Label htmlFor="phone">Mobile number (10 digits)</Label>
-                  <Input id="phone" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <Label htmlFor="phone" className="flex items-center gap-1">
+                    Mobile number (10 digits) <span className="text-destructive font-bold">*</span>
+                  </Label>
+                  <Input id="phone" required inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit number" />
                 </div>
               </div>
             </div>
@@ -202,9 +210,12 @@ export default function CheckoutPage() {
               <h2 className="font-display text-2xl mb-4">Delivery address</h2>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address" className="flex items-center gap-1">
+                    Address <span className="text-destructive font-bold">*</span>
+                  </Label>
                   <Input
                     id="address"
+                    required
                     placeholder="Flat, building, street, area"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
@@ -212,12 +223,16 @@ export default function CheckoutPage() {
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="landmark">Landmark <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                    <Input id="landmark" value={landmark} onChange={(e) => setLandmark(e.target.value)} />
+                    <Label htmlFor="landmark" className="flex items-center gap-1">
+                      Landmark <span className="text-muted-foreground text-xs font-normal">(optional)</span>
+                    </Label>
+                    <Input id="landmark" placeholder="Nearby landmark" value={landmark} onChange={(e) => setLandmark(e.target.value)} />
                   </div>
                   <div>
-                    <Label htmlFor="pincode">Pincode</Label>
-                    <Input id="pincode" inputMode="numeric" maxLength={6} value={pincode} onChange={(e) => setPincode(e.target.value)} />
+                    <Label htmlFor="pincode" className="flex items-center gap-1">
+                      Pincode <span className="text-destructive font-bold">*</span>
+                    </Label>
+                    <Input id="pincode" required inputMode="numeric" maxLength={6} value={pincode} onChange={(e) => setPincode(e.target.value)} placeholder="6-digit pincode" />
                   </div>
                 </div>
               </div>

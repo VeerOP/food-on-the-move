@@ -3,10 +3,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { format } from "date-fns";
+import { buildWhatsAppOrderMessage, whatsappLink } from "@/lib/notify";
 import { STATUS_LABEL, STATUS_STYLE, OrderStatus } from "@/lib/orderStatus";
 
 type OrderRow = {
@@ -143,11 +145,44 @@ export default function OrdersPage() {
                     )
                   )}
                 </div>
-                {o.status === "pending_payment" && (
-                  <Button variant="outline" className="mt-4" onClick={() => navigate(`/pay/${o.id}`)}>
-                    Complete payment
-                  </Button>
-                )}
+                <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border/50">
+                  {o.status === "pending_payment" ? (
+                    <Button variant="hero" size="sm" onClick={() => navigate(`/pay/${o.id}`)}>
+                      Complete Payment
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground flex items-center gap-1.5"
+                      onClick={() => {
+                        const isRazorpay = o.upi_reference && o.upi_reference.startsWith("pay_");
+                        const msg = buildWhatsAppOrderMessage({
+                          orderId: o.id,
+                          customerName: user?.email ? user.email.split("@")[0] : "Customer",
+                          customerPhone: "",
+                          address: o.delivery_address,
+                          distanceKm: o.delivery_distance_km,
+                          subtotal: o.subtotal_inr,
+                          deliveryFee: o.delivery_fee_inr,
+                          total: o.total_inr,
+                          paymentStatus: o.status,
+                          upiReference: o.upi_reference,
+                          createdAt: o.created_at,
+                          items: o.order_items.map((it) => ({
+                            name: it.product_name,
+                            quantity: it.quantity,
+                            lineTotal: it.line_total_inr,
+                          })),
+                        });
+                        window.open(whatsappLink(msg), "_blank", "noopener");
+                      }}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                      WhatsApp Receipt
+                    </Button>
+                  )}
+                </div>
               </motion.div>
             ))}
           </div>

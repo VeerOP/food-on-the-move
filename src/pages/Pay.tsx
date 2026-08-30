@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import QRCode from "qrcode";
-import { Copy, Smartphone, CheckCircle2, CreditCard, Loader2 } from "lucide-react";
+import { Copy, Smartphone, CheckCircle2, CreditCard, Loader2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -423,20 +423,62 @@ export default function PayPage() {
 
               {/* WhatsApp Call-to-action */}
               <div className="space-y-4 pt-4 border-t border-border/50">
-                <div className="bg-primary/10 border border-primary/30 rounded-2xl p-5">
-                  <p className="text-xs text-primary font-semibold tracking-wider uppercase mb-3">
-                    📲 STEP 2: SHARE ORDER DETAILS ON WHATSAPP
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Send the generated order receipt message on WhatsApp. This is how we coordinate delivery details and updates with you.
-                  </p>
-                  <Button 
-                    variant="hero" 
-                    className="w-full bg-[#25D366] hover:bg-[#20ba56] text-white border-none shadow-lg shadow-green-500/20 py-6"
-                    onClick={() => handleSendWhatsApp(order)}
-                  >
-                    Send Order via WhatsApp
-                  </Button>
+                <div className="bg-[#25D366]/10 border border-[#25D366]/30 rounded-2xl p-5 text-left">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center font-bold text-sm">
+                      💬
+                    </div>
+                    <div>
+                      <h4 className="font-display text-base text-foreground">Order Confirmation on WhatsApp</h4>
+                      <p className="text-xs text-muted-foreground">Send receipt & chat with store for live delivery updates</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid sm:grid-cols-2 gap-2 mt-4">
+                    <Button 
+                      variant="hero" 
+                      className="w-full bg-[#25D366] hover:bg-[#20ba56] text-white border-none shadow-lg shadow-green-500/20 py-5 flex items-center justify-center gap-2 font-medium"
+                      onClick={() => handleSendWhatsApp(order)}
+                    >
+                      <MessageSquare className="w-4 h-4 fill-white" />
+                      Send to WhatsApp
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground py-5 flex items-center justify-center gap-2"
+                      onClick={() => {
+                        const isRazorpay = order.upi_reference && order.upi_reference.startsWith("pay_");
+                        const msg = buildWhatsAppOrderMessage({
+                          orderId: order.id,
+                          customerName: order.customer_name,
+                          customerPhone: order.customer_phone,
+                          address: order.delivery_address,
+                          landmark: order.landmark,
+                          pincode: order.pincode,
+                          mapsUrl: googleMapsLink(order.delivery_lat, order.delivery_lng),
+                          distanceKm: order.delivery_distance_km,
+                          subtotal: order.subtotal_inr,
+                          deliveryFee: order.delivery_fee_inr,
+                          total: order.total_inr,
+                          paymentStatus: isRazorpay ? "Paid (Razorpay)" : "Paid (UPI)",
+                          upiReference: order.upi_reference,
+                          createdAt: order.created_at,
+                          items: order.order_items.map((it) => ({
+                            name: it.product_name,
+                            quantity: it.quantity,
+                            lineTotal: it.line_total_inr,
+                            variant: it.variant,
+                            packItems: it.pack_items,
+                          })),
+                        });
+                        navigator.clipboard.writeText(msg);
+                        toast.success("Order summary copied to clipboard!");
+                      }}
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copy Receipt Text
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex gap-3 justify-center">

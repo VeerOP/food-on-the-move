@@ -7,6 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-admin";
 import { toast } from "sonner";
+import { MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { customerWhatsappLink, buildCustomerStatusMessage } from "@/lib/notify";
 import {
   Select,
   SelectContent,
@@ -186,18 +189,34 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 border-t border-border/50 pt-4">
-                  <span className="text-sm text-muted-foreground">Update status:</span>
-                  <div className="min-w-[220px]">
-                    <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v as OrderStatus)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {ORDER_STATUSES.map((s) => (
-                          <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 pt-4">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-sm text-muted-foreground">Update status:</span>
+                    <div className="min-w-[200px]">
+                      <Select value={o.status} onValueChange={(v) => updateStatus(o.id, v as OrderStatus)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ORDER_STATUSES.map((s) => (
+                            <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground flex items-center gap-2"
+                    onClick={() => {
+                      const msg = buildCustomerStatusMessage(o.customer_name, o.id, STATUS_LABEL[o.status]);
+                      const link = customerWhatsappLink(o.customer_phone, msg);
+                      window.open(link, "_blank", "noopener");
+                    }}
+                  >
+                    <MessageSquare className="w-4 h-4 text-[#25D366]" />
+                    Chat with Buyer on WhatsApp
+                  </Button>
                 </div>
               </motion.div>
             ))}

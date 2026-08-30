@@ -477,8 +477,8 @@ export default function ProductDetail() {
               <div className={`absolute inset-0 bg-gradient-to-br ${product.color} rounded-full blur-[100px] opacity-60`} />
               <div className="relative z-10 w-full max-w-md">
                 {catalogEntry?.isSoldOut && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] z-30 flex items-center justify-center rounded-3xl overflow-hidden pointer-events-none">
-                    <span className="border-4 border-destructive text-destructive font-display text-3xl font-black uppercase tracking-widest px-6 py-3 rounded-2xl rotate-[-12deg] shadow-2xl select-none bg-black/45">
+                  <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] z-30 flex items-center justify-center rounded-3xl overflow-hidden pointer-events-none transition-all">
+                    <span className="border-4 border-destructive text-destructive font-display text-3xl font-black uppercase tracking-widest px-6 py-3 rounded-2xl rotate-[-12deg] shadow-2xl select-none bg-black/75">
                       Sold Out
                     </span>
                   </div>

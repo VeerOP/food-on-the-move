@@ -1,6 +1,6 @@
 import { variantLabel } from "@/lib/catalog";
 
-export const OWNER_WHATSAPP = "918291102006"; // +91 8291102006
+export const OWNER_WHATSAPP = "919152856405"; // +91 9152856405
 
 export type OrderNotifyItem = {
   name: string;
@@ -57,8 +57,23 @@ export function buildWhatsAppOrderMessage(o: OrderNotifyPayload) {
   return (lines as string[]).join("\n");
 }
 
+export function cleanPhoneNumber(phone: string): string {
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 10) return `91${cleaned}`;
+  return cleaned;
+}
+
 export function whatsappLink(message: string) {
   return `https://wa.me/${OWNER_WHATSAPP}?text=${encodeURIComponent(message)}`;
+}
+
+export function customerWhatsappLink(phone: string, message: string) {
+  const formattedPhone = cleanPhoneNumber(phone);
+  return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+}
+
+export function buildCustomerStatusMessage(customerName: string, orderId: string, status: string) {
+  return `Hi ${customerName}! 👋\nThis is Food On The Move regarding your order #${orderId.slice(0, 8)}.\nStatus: *${status}*\n\nThank you for choosing us! 🍿🍪`;
 }
 
 export function googleMapsLink(lat: number, lng: number) {
