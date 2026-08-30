@@ -6,13 +6,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
+  const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = body || {};
 
   if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
     return res.status(400).json({ error: "Missing required signature verification fields" });
   }
 
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || "";
+  const keySecret = rawKeySecret.replace(/['"\s]/g, "").trim();
 
   if (!keySecret) {
     return res.status(500).json({ error: "Razorpay credentials are not configured on the server" });
@@ -32,6 +34,7 @@ export default async function handler(req: any, res: any) {
     }
   } catch (error: any) {
     console.error("Razorpay verification error:", error);
-    return res.status(500).json({ error: error.message || "Signature verification failed" });
+    const errorDescription = error?.error?.description || error?.message || "Signature verification failed";
+    return res.status(500).json({ error: errorDescription });
   }
 }

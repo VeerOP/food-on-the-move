@@ -187,12 +187,7 @@ export default function PayPage() {
       return;
     }
 
-    const key = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
-    if (!key) {
-      setConfirming(false);
-      toast.error("Razorpay Key ID is not configured. Please add VITE_RAZORPAY_KEY_ID to your .env file.");
-      return;
-    }
+    const localKey = (import.meta.env.VITE_RAZORPAY_KEY_ID || "").replace(/['"\s]/g, "").trim();
 
     try {
       // 1. BACKEND - Create Order
@@ -213,11 +208,18 @@ export default function PayPage() {
         throw new Error(errorData.error || "Failed to create order on server");
       }
 
-      const { order_id } = await createResponse.json();
+      const { order_id, key_id } = await createResponse.json();
+      const activeKey = key_id || localKey;
+
+      if (!activeKey) {
+        setConfirming(false);
+        toast.error("Razorpay Key ID is not configured. Please check your environment variables.");
+        return;
+      }
 
       // 2. FRONTEND - Open Razorpay Modal with order_id
       const options = {
-        key: key,
+        key: activeKey,
         amount: Math.round(order.total_inr * 100),
         currency: "INR",
         name: "Food on the Move",
