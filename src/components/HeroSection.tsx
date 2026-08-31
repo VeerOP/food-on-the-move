@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Sparkles, Film } from "lucide-react";
-import heroBg from "@/assets/hero-all-products.png";
-import logo from "@/assets/logo-new.png";
+import heroBg from "@/assets/hero-all-products.webp";
+import logo from "@/assets/logo-new.webp";
 
 const phrases = ["Gluten Free", "Roasted", "Non-Fried", "No Palm Oil", "Zero Trans Fat"];
 

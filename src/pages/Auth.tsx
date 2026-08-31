@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -16,15 +16,18 @@ const passwordSchema = z.string().min(6, "Min 6 characters").max(72);
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
 
+  const redirectTarget = (location.state as { from?: string } | null)?.from || "/";
+
   useEffect(() => {
-    if (user) navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (user) navigate(redirectTarget, { replace: true });
+  }, [user, navigate, redirectTarget]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +44,7 @@ export default function AuthPage() {
     if (error) toast.error(error.message);
     else {
       toast.success("Welcome back!");
-      navigate("/");
+      navigate(redirectTarget, { replace: true });
     }
   };
 

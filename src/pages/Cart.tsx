@@ -18,17 +18,6 @@ export default function CartPage() {
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState("");
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="pt-32 pb-16 section-container text-center">
-          <h1 className="font-display text-4xl mb-4">Sign in to view your cart</h1>
-          <Button variant="hero" onClick={() => navigate("/auth")}>Sign In</Button>
-        </div>
-      </div>
-    );
-  }
 
   const deliveryFee = computeDeliveryFee(subtotal);
   const total = subtotal - discount + deliveryFee;

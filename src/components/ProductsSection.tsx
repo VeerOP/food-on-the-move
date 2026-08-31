@@ -13,10 +13,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { variantPrice } from "@/lib/catalog";
 
-import productCorn from "@/assets/product-corn-main.png";
-import productJowar from "@/assets/product-jowar-main.png";
-import productQuinoa from "@/assets/product-quinoa-main.png";
-import productMultigrain from "@/assets/product-multigrain-main.png";
+import productCorn from "@/assets/product-corn-main.webp";
+import productJowar from "@/assets/product-jowar-main.webp";
+import productQuinoa from "@/assets/product-quinoa-main.webp";
+import productMultigrain from "@/assets/product-multigrain-main.webp";
 
 const products = [
   {
@@ -151,6 +151,8 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
                 <motion.img
                   src={product.image}
                   alt={product.name}
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-auto object-contain drop-shadow-2xl"
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   transition={{ type: "spring", stiffness: 300 }}

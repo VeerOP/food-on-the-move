@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
@@ -37,6 +37,40 @@ type CartCtx = {
   removeCoupon: () => void;
 };
 
+const CART_STORAGE_KEY = "fomo_cart_items";
+const COUPON_STORAGE_KEY = "fomo_coupon_code";
+
+function loadLocalCart(): CartItem[] {
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((i: Record<string, unknown>) => ({
+        id: String(i.id || ""),
+        product_slug: String(i.product_slug || ""),
+        product_name: String(i.product_name || ""),
+        product_image: typeof i.product_image === "string" ? i.product_image : null,
+        price_inr: Number(i.price_inr) || 0,
+        quantity: Number(i.quantity) || 1,
+        variant: (i.variant ?? "single") as Variant,
+        pack_items: Array.isArray(i.pack_items) ? (i.pack_items as string[]) : [],
+      }));
+    }
+  } catch (e) {
+    console.warn("Failed to parse local cart:", e);
+  }
+  return [];
+}
+
+function saveLocalCart(items: CartItem[]) {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch (e) {
+    console.warn("Failed to save local cart:", e);
+  }
+}
+
 const Ctx = createContext<CartCtx>({
   items: [],
   loading: false,
@@ -55,50 +89,104 @@ const Ctx = createContext<CartCtx>({
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [items, setItems] = useState<CartItem[]>([]);
+  // Hydrate immediately from localStorage on initial render to prevent empty cart flash on reload
+  const [items, setItems] = useState<CartItem[]>(() => loadLocalCart());
   const [loading, setLoading] = useState(false);
-  const [couponCode, setCouponCode] = useState<string>("");
+  const [couponCode, setCouponCode] = useState<string>(() => {
+    return localStorage.getItem(COUPON_STORAGE_KEY) || "";
+  });
+  const hasMergedUserCart = useRef<string | null>(null);
+
+  // Sync state to localStorage whenever items change
+  const updateItems = useCallback((newItems: CartItem[] | ((prev: CartItem[]) => CartItem[])) => {
+    setItems((prev) => {
+      const resolved = typeof newItems === "function" ? newItems(prev) : newItems;
+      saveLocalCart(resolved);
+      return resolved;
+    });
+  }, []);
 
   const refresh = useCallback(async (isInitial = false) => {
     if (!user) {
-      setItems([]);
+      // Guest mode: load and stay with local storage
+      const local = loadLocalCart();
+      setItems(local);
       return;
     }
+
     if (isInitial) setLoading(true);
-    const { data, error } = await supabase
-      .from("cart_items")
-      .select("id, product_slug, product_name, product_image, price_inr, quantity, variant, pack_items")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
-    if (error) {
-      toast.error("Failed to load cart");
-    } else {
-      setItems(
-        (data ?? []).map((i: any) => ({
-          ...i,
-          price_inr: Number(i.price_inr),
+
+    try {
+      // If user just logged in and we had guest items in localStorage, migrate them to Supabase
+      if (hasMergedUserCart.current !== user.id) {
+        hasMergedUserCart.current = user.id;
+        const local = loadLocalCart();
+        if (local.length > 0) {
+          for (const item of local) {
+            if (item.variant === "free") continue; // will be handled by gift synchronizer
+            const { error: upsertErr } = await supabase.from("cart_items").upsert(
+              {
+                user_id: user.id,
+                product_slug: item.product_slug,
+                product_name: item.product_name,
+                product_image: item.product_image,
+                price_inr: item.price_inr,
+                quantity: item.quantity,
+                variant: item.variant,
+                pack_items: item.pack_items,
+              },
+              { onConflict: "user_id,product_slug,variant" }
+            );
+            if (upsertErr) console.warn("Could not merge local item into Supabase:", upsertErr);
+          }
+        }
+      }
+
+      const { data, error } = await supabase
+        .from("cart_items")
+        .select("id, product_slug, product_name, product_image, price_inr, quantity, variant, pack_items")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.warn("Failed to load cart from Supabase, falling back to local:", error);
+      } else if (data) {
+        const mapped: CartItem[] = data.map((i: Record<string, unknown>) => ({
+          id: String(i.id || ""),
+          product_slug: String(i.product_slug || ""),
+          product_name: String(i.product_name || ""),
+          product_image: typeof i.product_image === "string" ? i.product_image : null,
+          price_inr: Number(i.price_inr) || 0,
+          quantity: Number(i.quantity) || 1,
           variant: (i.variant ?? "single") as Variant,
-          pack_items: Array.isArray(i.pack_items) ? i.pack_items : [],
-        })) as CartItem[]
-      );
+          pack_items: Array.isArray(i.pack_items) ? (i.pack_items as string[]) : [],
+        }));
+        setItems(mapped);
+        saveLocalCart(mapped);
+      }
+    } catch (e) {
+      console.warn("Error refreshing cart:", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
     refresh(true);
   }, [refresh]);
 
-  // Synchronizer for free FOMO Steel Bottle gift
+  // Synchronizer for free FOMO Steel Bottle gift (works for both guest & signed in users)
   useEffect(() => {
-    if (!user || loading) return;
+    if (loading) return;
 
     const syncFreeGift = async () => {
       // Legacy cleanup: delete any stale "single" variant steel bottle with price 0
       const legacyItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.variant === "single" && i.price_inr === 0);
       if (legacyItem) {
-        await supabase.from("cart_items").delete().eq("id", legacyItem.id);
-        await refresh();
+        if (user) {
+          await supabase.from("cart_items").delete().eq("id", legacyItem.id);
+        }
+        updateItems((prev) => prev.filter((i) => i.id !== legacyItem.id));
         return;
       }
 
@@ -119,23 +207,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const product = CATALOG["fomo-steel-bottle"];
         if (!product) return;
 
-        // Optimistically insert a temp item to avoid duplicate database operations
-        setItems((prev) => [
-          ...prev,
-          {
-            id: "temp-fomo",
-            product_slug: "fomo-steel-bottle",
-            product_name: product.name,
-            product_image: product.image,
-            price_inr: 0,
-            quantity: 1,
-            variant: "free",
-            pack_items: [],
-          },
-        ]);
-
-        await supabase.from("cart_items").insert({
-          user_id: user.id,
+        const freeItem: CartItem = {
+          id: user ? `temp-fomo-${Date.now()}` : `guest-fomo-${Date.now()}`,
           product_slug: "fomo-steel-bottle",
           product_name: product.name,
           product_image: product.image,
@@ -143,37 +216,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
           quantity: 1,
           variant: "free",
           pack_items: [],
-        });
-        await refresh();
-      } else if (!shouldHaveGift && fomoItem) {
-        // Optimistically remove
-        setItems((prev) => prev.filter((i) => i.variant !== "free"));
+        };
 
-        await supabase
-          .from("cart_items")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("product_slug", "fomo-steel-bottle")
-          .eq("variant", "free");
-        await refresh();
+        if (user) {
+          const { data } = await supabase.from("cart_items").insert({
+            user_id: user.id,
+            product_slug: "fomo-steel-bottle",
+            product_name: product.name,
+            product_image: product.image,
+            price_inr: 0,
+            quantity: 1,
+            variant: "free",
+            pack_items: [],
+          }).select("id").single();
+          if (data?.id) freeItem.id = data.id;
+        }
+
+        updateItems((prev) => [...prev.filter((i) => i.variant !== "free"), freeItem]);
+      } else if (!shouldHaveGift && fomoItem) {
+        if (user) {
+          await supabase
+            .from("cart_items")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("product_slug", "fomo-steel-bottle")
+            .eq("variant", "free");
+        }
+        updateItems((prev) => prev.filter((i) => i.variant !== "free"));
       } else if (fomoItem && fomoItem.quantity !== 1) {
-        await supabase
-          .from("cart_items")
-          .update({ quantity: 1 })
-          .eq("user_id", user.id)
-          .eq("id", fomoItem.id);
-        await refresh();
+        if (user) {
+          await supabase
+            .from("cart_items")
+            .update({ quantity: 1 })
+            .eq("user_id", user.id)
+            .eq("id", fomoItem.id);
+        }
+        updateItems((prev) =>
+          prev.map((i) => (i.id === fomoItem.id ? { ...i, quantity: 1 } : i))
+        );
       }
     };
 
     syncFreeGift();
-  }, [items, user, loading, refresh]);
+  }, [items, user, loading, couponCode, updateItems]);
 
   const addToCart = async (slug: string, opts: AddOptions = {}) => {
-    if (!user) {
-      toast.error("Please sign in to add items to your cart");
-      return;
-    }
     const variant: Variant = opts.variant ?? "single";
     const product = CATALOG[slug];
     if (!product) return;
@@ -204,30 +291,60 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existing = items.find((i) => i.product_slug === slug && i.variant === "single" && i.price_inr === price);
       if (existing) {
         await updateQty(existing.id, existing.quantity + qty);
+        toast.success(`Updated ${product.name} quantity`);
         return;
       }
     }
 
-    const { error } = await supabase.from("cart_items").insert({
-      user_id: user.id,
-      product_slug: slug,
-      product_name: product.name,
-      product_image: product.image,
-      price_inr: price,
-      quantity: qty,
-      variant,
-      pack_items: packItems,
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
+    if (user) {
+      const { data, error } = await supabase.from("cart_items").insert({
+        user_id: user.id,
+        product_slug: slug,
+        product_name: product.name,
+        product_image: product.image,
+        price_inr: price,
+        quantity: qty,
+        variant,
+        pack_items: packItems,
+      }).select("id").single();
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      const newItem: CartItem = {
+        id: data?.id ?? `cart-${Date.now()}`,
+        product_slug: slug,
+        product_name: product.name,
+        product_image: product.image,
+        price_inr: price,
+        quantity: qty,
+        variant,
+        pack_items: packItems,
+      };
+
+      updateItems((prev) => [...prev, newItem]);
       toast.success(`${product.name} added to cart`);
-      await refresh();
+    } else {
+      // Guest mode: save immediately to local storage
+      const newItem: CartItem = {
+        id: `guest-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        product_slug: slug,
+        product_name: product.name,
+        product_image: product.image,
+        price_inr: price,
+        quantity: qty,
+        variant,
+        pack_items: packItems,
+      };
+
+      updateItems((prev) => [...prev, newItem]);
+      toast.success(`${product.name} added to cart`);
     }
   };
 
   const updateQty = async (id: string, qty: number) => {
-    if (!user) return;
     if (qty <= 0) {
       await removeItem(id);
       return;
@@ -243,38 +360,48 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const { error } = await supabase
-      .from("cart_items")
-      .update({ quantity: qty, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .eq("id", id);
-    if (error) toast.error(error.message);
-    else await refresh();
+    updateItems((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, quantity: qty } : it))
+    );
+
+    if (user) {
+      const { error } = await supabase
+        .from("cart_items")
+        .update({ quantity: qty, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .eq("id", id);
+      if (error) toast.error(error.message);
+    }
   };
 
   const removeItem = async (id: string) => {
-    if (!user) return;
     const item = items.find((i) => i.id === id);
     if (item && item.variant === "free") {
       localStorage.setItem("rejected_free_gift", "true");
     }
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("user_id", user.id)
-      .eq("id", id);
-    if (error) toast.error(error.message);
-    else await refresh();
+
+    updateItems((prev) => prev.filter((it) => it.id !== id));
+
+    if (user) {
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("id", id);
+      if (error) toast.error(error.message);
+    }
   };
 
+  // clearCart is ONLY called after verified payment completion in Pay.tsx
   const clearCart = async () => {
-    if (!user) return;
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("user_id", user.id);
-    if (error) toast.error(error.message);
-    else setItems([]);
+    updateItems([]);
+    if (user) {
+      const { error } = await supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", user.id);
+      if (error) console.warn("Failed to clear Supabase cart:", error.message);
+    }
   };
 
   const count = items.reduce((s, i) => s + i.quantity, 0);
@@ -284,6 +411,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const applyCoupon = (code: string) => {
     if (code.toUpperCase() === "FOMO20") {
       setCouponCode("FOMO20");
+      localStorage.setItem(COUPON_STORAGE_KEY, "FOMO20");
       toast.success("Coupon FOMO20 applied! 20% discount added.");
       return true;
     }
@@ -293,6 +421,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeCoupon = () => {
     setCouponCode("");
+    localStorage.removeItem(COUPON_STORAGE_KEY);
     toast.success("Coupon removed");
   };
 
@@ -320,4 +449,3 @@ export function CartProvider({ children }: { children: ReactNode }) {
 }
 
 export const useCart = () => useContext(Ctx);
-

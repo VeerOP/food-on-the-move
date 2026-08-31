@@ -11,13 +11,21 @@ export const DELIVERY_RADIUS_KM = 5; // retained for backwards compatibility ref
 export const FREE_DELIVERY_THRESHOLD_INR = 1000; // default/Mumbai threshold
 
 export function isMumbaiAddress(pincode: string, address: string): boolean {
-  const pin = String(pincode).trim();
-  const addr = String(address).toLowerCase();
-  return pin.startsWith("400") || addr.includes("mumbai");
+  const pin = String(pincode || "").trim();
+  const addr = String(address || "").toLowerCase();
+  return (
+    pin.startsWith("400") ||
+    pin.startsWith("401") ||
+    pin.startsWith("410") ||
+    addr.includes("mumbai") ||
+    addr.includes("navi mumbai") ||
+    addr.includes("thane")
+  );
 }
 
 export function computeDeliveryFee(subtotal: number, pincode?: string, address?: string): number {
-  const isMumbai = (pincode && address) ? isMumbaiAddress(pincode, address) : true;
+  const hasPinOrAddr = Boolean(pincode?.trim() || address?.trim());
+  const isMumbai = hasPinOrAddr ? isMumbaiAddress(pincode || "", address || "") : true;
   const threshold = isMumbai ? 1000 : 2000;
   const fee = isMumbai ? 100 : 200;
   return subtotal >= threshold ? 0 : fee;

@@ -26,6 +26,16 @@ export default defineConfig(({ mode }) => {
     base: "./",
     build: {
       outDir: "docs",
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            "vendor-react": ["react", "react-dom", "react-router-dom"],
+            "vendor-ui": ["framer-motion", "lucide-react"],
+            "vendor-supabase": ["@supabase/supabase-js"],
+          },
+        },
+      },
     },
     server: {
       host: "0.0.0.0",

@@ -1,24 +1,24 @@
-import productCorn from "@/assets/product-corn-main.png";
-import productJowar from "@/assets/product-jowar-main.png";
-import productQuinoa from "@/assets/product-quinoa-main.png";
-import productMultigrain from "@/assets/product-multigrain-main.png";
-import fomoBottle from "@/assets/steel-bottle-new.jpeg";
-import hamperClassic from "@/assets/hamper-classic.png";
-import hamperFitness from "@/assets/hamper-fitness.png";
-import hamperParty from "@/assets/hamper-party.png";
+import productCorn from "@/assets/product-corn-main.webp";
+import productJowar from "@/assets/product-jowar-main.webp";
+import productQuinoa from "@/assets/product-quinoa-main.webp";
+import productMultigrain from "@/assets/product-multigrain-main.webp";
+import fomoBottle from "@/assets/steel-bottle-new.webp";
+import hamperClassic from "@/assets/hamper-classic.webp";
+import hamperFitness from "@/assets/hamper-fitness.webp";
+import hamperParty from "@/assets/hamper-party.webp";
 
-import coffeeWalnutCookies from "@/assets/coffee-walnut-cookies.jpeg";
-import jowaarJaggeryCookies from "@/assets/jowaar-jaggery-cookies.jpeg";
-import multigrainJaggeryCookies from "@/assets/multigrain-jaggery-cookies.jpeg";
-import bajraJaggeryCookies from "@/assets/bajra-jaggery-cookies.jpeg";
-import vanillaChocolateCookies from "@/assets/vanilla-chocolate-cookies.jpeg";
-import chocochipsSticks from "@/assets/chocochips-sticks.jpeg";
-import almondSticks from "@/assets/almond-sticks.jpeg";
-import kunafa from "@/assets/kunafa.jpeg";
-import milletBaklava from "@/assets/millet-baklava.jpeg";
-import doubleChocolateCookies from "@/assets/double-chocolate-cookies.jpeg";
-import nachniJaggeryCookies from "@/assets/nachni-jaggery-cookies.jpeg";
-import oatsSticks from "@/assets/oats-sticks.jpeg";
+import coffeeWalnutCookies from "@/assets/coffee-walnut-cookies.webp";
+import jowaarJaggeryCookies from "@/assets/jowaar-jaggery-cookies.webp";
+import multigrainJaggeryCookies from "@/assets/multigrain-jaggery-cookies.webp";
+import bajraJaggeryCookies from "@/assets/bajra-jaggery-cookies.webp";
+import vanillaChocolateCookies from "@/assets/vanilla-chocolate-cookies.webp";
+import chocochipsSticks from "@/assets/chocochips-sticks.webp";
+import almondSticks from "@/assets/almond-sticks.webp";
+import kunafa from "@/assets/kunafa.webp";
+import milletBaklava from "@/assets/millet-baklava.webp";
+import doubleChocolateCookies from "@/assets/double-chocolate-cookies.webp";
+import nachniJaggeryCookies from "@/assets/nachni-jaggery-cookies.webp";
+import oatsSticks from "@/assets/oats-sticks.webp";
 
 export type ProductCategory = "puffs" | "sweets" | "sticks" | "cookies" | "accessories" | "hampers";
 

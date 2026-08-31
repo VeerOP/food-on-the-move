@@ -15,30 +15,30 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import productCorn from "@/assets/product-corn-main.png";
-import productCornBack from "@/assets/product-woh-corn-thi-back.jpg";
-import productJowar from "@/assets/product-jowar-main.png";
-import productJowarBack from "@/assets/product-yeh-jowaari-back.jpg";
-import productQuinoa from "@/assets/product-quinoa-main.png";
-import productQuinoaBack from "@/assets/product-quinoa-se-quinoa-back.jpg";
-import productMultigrain from "@/assets/product-multigrain-main.png";
-import productMultigrainBack from "@/assets/product-hum-saath-back.jpg";
-import lifestyleQuinoa from "@/assets/lifestyle-quinoa.png";
-import lifestyleJowar from "@/assets/lifestyle-jowar.png";
-import lifestyleCorn from "@/assets/lifestyle-corn.png";
-import lifestyleMultigrain from "@/assets/lifestyle-multigrain.png";
+import productCorn from "@/assets/product-corn-main.webp";
+import productCornBack from "@/assets/product-woh-corn-thi-back.webp";
+import productJowar from "@/assets/product-jowar-main.webp";
+import productJowarBack from "@/assets/product-yeh-jowaari-back.webp";
+import productQuinoa from "@/assets/product-quinoa-main.webp";
+import productQuinoaBack from "@/assets/product-quinoa-se-quinoa-back.webp";
+import productMultigrain from "@/assets/product-multigrain-main.webp";
+import productMultigrainBack from "@/assets/product-hum-saath-back.webp";
+import lifestyleQuinoa from "@/assets/lifestyle-quinoa.webp";
+import lifestyleJowar from "@/assets/lifestyle-jowar.webp";
+import lifestyleCorn from "@/assets/lifestyle-corn.webp";
+import lifestyleMultigrain from "@/assets/lifestyle-multigrain.webp";
 
-import coffeeWalnutCookies from "@/assets/coffee-walnut-cookies.jpeg";
-import jowaarJaggeryCookies from "@/assets/jowaar-jaggery-cookies.jpeg";
-import multigrainJaggeryCookies from "@/assets/multigrain-jaggery-cookies.jpeg";
-import bajraJaggeryCookies from "@/assets/bajra-jaggery-cookies.jpeg";
-import vanillaChocolateCookies from "@/assets/vanilla-chocolate-cookies.jpeg";
-import chocochipsSticks from "@/assets/chocochips-sticks.jpeg";
-import almondSticks from "@/assets/almond-sticks.jpeg";
-import kunafa from "@/assets/kunafa.jpeg";
-import milletBaklava from "@/assets/millet-baklava.jpeg";
-import doubleChocolateCookies from "@/assets/double-chocolate-cookies.jpeg";
-import fomoBottle from "@/assets/steel-bottle-new.jpeg";
+import coffeeWalnutCookies from "@/assets/coffee-walnut-cookies.webp";
+import jowaarJaggeryCookies from "@/assets/jowaar-jaggery-cookies.webp";
+import multigrainJaggeryCookies from "@/assets/multigrain-jaggery-cookies.webp";
+import bajraJaggeryCookies from "@/assets/bajra-jaggery-cookies.webp";
+import vanillaChocolateCookies from "@/assets/vanilla-chocolate-cookies.webp";
+import chocochipsSticks from "@/assets/chocochips-sticks.webp";
+import almondSticks from "@/assets/almond-sticks.webp";
+import kunafa from "@/assets/kunafa.webp";
+import milletBaklava from "@/assets/millet-baklava.webp";
+import doubleChocolateCookies from "@/assets/double-chocolate-cookies.webp";
+import fomoBottle from "@/assets/steel-bottle-new.webp";
 
 const productsData: Record<string, any> = {
   "woh-corn-thi": {
@@ -400,14 +400,17 @@ export default function ProductDetail() {
   const handleBuyNow = async (packItems?: string[]) => {
     if (!catalogEntry) return;
     setAdding(true);
-    await clearCart();
     await addToCart(catalogEntry.slug, { variant, packItems: packItems ?? [] });
     setAdding(false);
     navigate("/checkout");
   };
 
   const onPrimaryClick = (buyNow: boolean) => {
-    buyNow ? handleBuyNow([]) : handleAdd([]);
+    if (buyNow) {
+      handleBuyNow([]);
+    } else {
+      handleAdd([]);
+    }
   };
 
 
@@ -495,6 +498,8 @@ export default function ProductDetail() {
                           <img
                             src={image}
                             alt={`${product.name} - View ${index + 1}`}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full max-w-sm drop-shadow-2xl"
                           />
                         </motion.div>
@@ -550,6 +555,8 @@ export default function ProductDetail() {
                   <img 
                     src={product.lifestyleImage} 
                     alt={`${product.name} - ${product.lifestyleCaption}`}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-auto object-cover"
                   />
                   <div className="absolute bottom-4 left-6 z-20">

@@ -1,0 +1,7 @@
+import{z as o}from"./index-RgUYXSD2.js";const i="919152856405";function m(e){const t=e.createdAt?new Date(e.createdAt):new Date;return[`🍽️ *New Order* #${e.orderId.slice(0,8)}`,`🕒 ${t.toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}`,"",`👤 ${e.customerName}`,`📞 ${e.customerPhone}`,`📍 ${e.address}${e.pincode?` — ${e.pincode}`:""}`,e.landmark?`🧭 Landmark: ${e.landmark}`:null,e.mapsUrl?`🗺️ ${e.mapsUrl}`:null,`📏 ${e.distanceKm.toFixed(2)} km from store`,"","*Items:*",...e.items.map(n=>{const r=n.variant?` [${o(n.variant)}]`:"",s=n.packItems&&n.packItems.length?`
+     ↳ ${n.packItems.join(", ")}`:"";return`• ${n.name}${r} × ${n.quantity} — ₹${n.lineTotal.toFixed(2)}${s}`}),"",`Subtotal: ₹${e.subtotal.toFixed(2)}`,`Delivery: ${e.deliveryFee===0?"FREE":`₹${e.deliveryFee.toFixed(2)}`}`,`*Total:* ₹${e.total.toFixed(2)}`,"",`*Payment:* ${e.paymentStatus}${e.upiReference?` (Ref: ${e.upiReference})`:""}`].filter(Boolean).join(`
+`)}function c(e){const t=e.replace(/\D/g,"");return t.length===10?`91${t}`:t}function u(e){return`https://wa.me/${i}?text=${encodeURIComponent(e)}`}function $(e,t){return`https://wa.me/${c(e)}?text=${encodeURIComponent(t)}`}function d(e,t,a){return`Hi ${e}! 👋
+This is Food On The Move regarding your order #${t.slice(0,8)}.
+Status: *${a}*
+
+Thank you for choosing us! 🍿🍪`}function p(e,t){return`https://www.google.com/maps?q=${e},${t}`}export{d as a,m as b,$ as c,p as g,u as w};

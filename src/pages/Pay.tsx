@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { useCart } from "@/hooks/use-cart";
 import { buildUpiUri, UPI_PAYEE_VPA, UPI_PAYEE_NAME } from "@/lib/upi";
 import { buildWhatsAppOrderMessage, whatsappLink, googleMapsLink } from "@/lib/notify";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ export default function PayPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { clearCart } = useCart();
   const [order, setOrder] = useState<Order | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
   const [screenshot, setScreenshot] = useState<string | null>(null);
@@ -260,6 +262,8 @@ export default function PayPage() {
 
             if (error) throw error;
 
+            await clearCart();
+
             toast.success("Payment verified! Order confirmed.");
             const updatedOrder = {
               ...order,
@@ -351,6 +355,8 @@ export default function PayPage() {
       toast.error(error.message);
       return;
     }
+
+    await clearCart();
 
     toast.success("Payment recorded! Your order is confirmed.");
     

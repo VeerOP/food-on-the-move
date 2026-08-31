@@ -2,11 +2,11 @@ import { motion } from "framer-motion";
 import { useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import allProducts from "@/assets/all-products-badges.png";
-import lifestyleGirl from "@/assets/lifestyle-girl-products.png";
-import lifestyleFriends from "@/assets/lifestyle-friends-gaming.png";
-import lifestyleTravel from "@/assets/lifestyle-travel.png";
-import lifestyleGamenight from "@/assets/lifestyle-gamenight.png";
+import allProducts from "@/assets/all-products-badges.webp";
+import lifestyleGirl from "@/assets/lifestyle-girl-products.webp";
+import lifestyleFriends from "@/assets/lifestyle-friends-gaming.webp";
+import lifestyleTravel from "@/assets/lifestyle-travel.webp";
+import lifestyleGamenight from "@/assets/lifestyle-gamenight.webp";
 
 const slides = [
   { src: allProducts, alt: "Food On The Move - Complete product range" },
@@ -66,7 +66,8 @@ export function OurRangeSection() {
                   src={slide.src}
                   alt={slide.alt}
                   className="w-full flex-shrink-0 h-auto object-cover"
-                  loading="lazy"
+                  loading={i === 0 ? "eager" : "lazy"}
+                  decoding="async"
                 />
               ))}
             </div>

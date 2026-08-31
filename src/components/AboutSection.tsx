@@ -10,8 +10,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 
-import vedaanshPhoto from "@/assets/vedaansh-photo.jpg";
-import bhawnaPhoto from "@/assets/bhawna-photo.jpg";
+import vedaanshPhoto from "@/assets/vedaansh-photo.webp";
+import bhawnaPhoto from "@/assets/bhawna-photo.webp";
 
 const values = [
   {
