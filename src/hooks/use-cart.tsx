@@ -412,10 +412,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const discount = couponCode.toUpperCase() === "FOMO20" ? Math.round(subtotal * 0.20) : 0;
 
   const applyCoupon = (code: string) => {
-    if (code.toUpperCase() === "FOMO20") {
+    const upper = (code || "").trim().toUpperCase();
+    if (upper === "FOMO20") {
       setCouponCode("FOMO20");
       localStorage.setItem(COUPON_STORAGE_KEY, "FOMO20");
       toast.success("Coupon FOMO20 applied! 20% discount added.");
+      return true;
+    }
+    if (upper === "DELIVERYONUS") {
+      setCouponCode("DELIVERYONUS");
+      localStorage.setItem(COUPON_STORAGE_KEY, "DELIVERYONUS");
+      toast.success("Coupon DELIVERYONUS applied! Free ₹0 delivery.");
       return true;
     }
     toast.error("Invalid coupon code");

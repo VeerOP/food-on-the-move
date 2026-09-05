@@ -156,9 +156,11 @@ export default function CheckoutPage() {
   const isPinValid = /^[1-9]\d{5}$/.test(cleanPin);
   const isMumbai = isMumbaiAddress(cleanPin, address);
   const deliveryThreshold = isMumbai ? 1000 : 2000;
-  const deliveryFee = computeDeliveryFee(subtotal, cleanPin, address);
+  const rawDeliveryFee = computeDeliveryFee(subtotal, cleanPin, address);
+  const isFreeDeliveryCoupon = couponCode.toUpperCase() === "DELIVERYONUS";
+  const deliveryFee = isFreeDeliveryCoupon ? 0 : rawDeliveryFee;
   const total = subtotal - discount + deliveryFee;
-  const amountToFree = Math.max(0, deliveryThreshold - subtotal);
+  const amountToFree = isFreeDeliveryCoupon ? 0 : Math.max(0, deliveryThreshold - subtotal);
 
   const handleProceed = async () => {
     if (!user) {
@@ -585,13 +587,17 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
-                <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
+                <span>{deliveryFee === 0 ? (isFreeDeliveryCoupon ? "FREE (DELIVERYONUS)" : "FREE") : `₹${deliveryFee.toFixed(2)}`}</span>
               </div>
-              {amountToFree > 0 && (
+              {isFreeDeliveryCoupon ? (
+                <p className="text-[11px] text-primary font-medium">
+                  ✓ Free ₹0 delivery applied with coupon DELIVERYONUS
+                </p>
+              ) : amountToFree > 0 ? (
                 <p className="text-[11px] text-primary/80">
                   Add ₹{amountToFree.toFixed(2)} more for FREE delivery
                 </p>
-              )}
+              ) : null}
             </div>
             <div className="border-t border-border/50 mt-3 pt-3 flex justify-between font-display text-xl mb-6">
               <span>Grand Total</span>

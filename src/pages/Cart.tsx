@@ -27,9 +27,11 @@ export default function CartPage() {
     }
   };
 
-  const deliveryFee = computeDeliveryFee(subtotal);
+  const rawDeliveryFee = computeDeliveryFee(subtotal);
+  const isFreeDeliveryCoupon = couponCode.toUpperCase() === "DELIVERYONUS";
+  const deliveryFee = isFreeDeliveryCoupon ? 0 : rawDeliveryFee;
   const total = subtotal - discount + deliveryFee;
-  const amountToFree = Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
+  const amountToFree = isFreeDeliveryCoupon ? 0 : Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
 
   return (
     <div className="min-h-screen bg-background">
@@ -171,13 +173,17 @@ export default function CartPage() {
                   <span>Delivery</span>
                   <span>{deliveryFee === 0 ? "FREE" : `₹${deliveryFee.toFixed(2)}`}</span>
                 </div>
-                {subtotal < 2000 && (
+                {isFreeDeliveryCoupon ? (
+                  <p className="text-xs text-primary font-medium">
+                    ✓ Coupon DELIVERYONUS applied: Free ₹0 delivery!
+                  </p>
+                ) : subtotal < 2000 ? (
                   <p className="text-xs text-primary/80 leading-normal">
                     {subtotal < 1000
                       ? `Add ₹${(1000 - subtotal).toFixed(2)} more for FREE delivery in Mumbai (or ₹${(2000 - subtotal).toFixed(2)} for PAN India)`
                       : `You have FREE delivery in Mumbai! Add ₹${(2000 - subtotal).toFixed(2)} more for FREE PAN India delivery.`}
                   </p>
-                )}
+                ) : null}
               </div>
 
               {/* Coupon Code Section */}
@@ -186,7 +192,11 @@ export default function CartPage() {
                   <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl p-3 text-sm">
                     <div className="flex flex-col">
                       <span className="font-semibold text-primary">{couponCode} applied</span>
-                      <span className="text-xs text-muted-foreground">20% discount on total puffs</span>
+                      <span className="text-xs text-muted-foreground">
+                        {couponCode.toUpperCase() === "DELIVERYONUS"
+                          ? "Free ₹0 Delivery"
+                          : "20% discount on total puffs"}
+                      </span>
                     </div>
                     <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-8 px-2.5 rounded-lg" onClick={removeCoupon}>
                       Remove
