@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
+import { CATALOG } from "@/lib/catalog";
 
 import productCorn from "@/assets/product-corn-main.webp";
 import productJowar from "@/assets/product-jowar-main.webp";
@@ -118,7 +119,7 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const { addToCart } = useCart();
-
+  const price = CATALOG[product.slug]?.price ?? 60;
 
   return (
     <>
@@ -133,6 +134,11 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
           <div className={`absolute inset-0 bg-gradient-to-br ${product.color} rounded-3xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
           
           <div className="relative bg-card border border-border/50 rounded-3xl p-6 overflow-hidden card-hover h-full flex flex-col justify-between">
+            {/* MRP Badge */}
+            <div className="absolute top-4 right-4 z-20 bg-primary text-primary-foreground font-mono font-bold text-xs px-3 py-1 rounded-full shadow-md">
+              MRP ₹{price}
+            </div>
+
             <div>
               {/* Clapperboard Tag */}
               {product.clapperboardTag && (
@@ -177,7 +183,7 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
                 variant="hero"
                 className="w-full py-4 text-xs font-semibold rounded-2xl shadow-lg transition-all duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform translate-y-1 md:group-hover:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
               >
-                <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart — ₹{product.price}
+                <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart — ₹{price}
               </Button>
             </div>
 
