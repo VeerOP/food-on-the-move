@@ -311,27 +311,27 @@ export default function PayPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border border-border/50 rounded-3xl p-8 text-center"
+          className="bg-card border border-border/50 rounded-3xl p-5 sm:p-8 text-center"
         >
-          <h1 className="font-display text-4xl mb-2">
+          <h1 className="font-display text-3xl sm:text-4xl mb-2">
             Pay with <span className="text-gradient">Razorpay</span>
           </h1>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-muted-foreground mb-6 text-sm sm:text-base">
             Order #{order.id.slice(0, 8)} · Amount: <span className="text-foreground font-semibold">₹{order.total_inr.toFixed(2)}</span>
           </p>
 
           {order.status === "paid" ? (
-            <div className="py-8 space-y-6 text-center">
+            <div className="py-6 sm:py-8 space-y-6 text-center">
               <div className="flex flex-col items-center">
                 <CheckCircle2 className="w-16 h-16 text-primary mb-3 animate-pulse" />
-                <h2 className="font-display text-3xl mb-1 text-foreground">Payment Received!</h2>
+                <h2 className="font-display text-2xl sm:text-3xl mb-1 text-foreground">Payment Received!</h2>
                 <p className="text-muted-foreground text-sm max-w-sm mx-auto">
                   Your order is confirmed via Razorpay (Ref: <span className="font-mono text-xs text-primary">{order.upi_reference}</span>).
                 </p>
               </div>
 
               {/* Order summary card */}
-              <div className="bg-background/50 border border-border/50 rounded-2xl p-6 text-left space-y-3">
+              <div className="bg-background/50 border border-border/50 rounded-2xl p-4 sm:p-6 text-left space-y-3">
                 <h3 className="font-display text-lg border-b border-border/50 pb-2">Order Summary</h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
                   {order.order_items.map((it, idx) => (
@@ -349,9 +349,9 @@ export default function PayPage() {
 
               {/* WhatsApp Call-to-action */}
               <div className="space-y-4 pt-4 border-t border-border/50">
-                <div className="bg-[#25D366]/10 border border-[#25D366]/30 rounded-2xl p-5 text-left">
+                <div className="bg-[#25D366]/10 border border-[#25D366]/30 rounded-2xl p-4 sm:p-5 text-left">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-[#25D366] text-white flex items-center justify-center font-bold text-sm shrink-0">
                       💬
                     </div>
                     <div>
@@ -363,15 +363,15 @@ export default function PayPage() {
                   <div className="grid sm:grid-cols-2 gap-2 mt-4">
                     <Button 
                       variant="hero" 
-                      className="w-full bg-[#25D366] hover:bg-[#20ba56] text-white border-none shadow-lg shadow-green-500/20 py-5 flex items-center justify-center gap-2 font-medium"
+                      className="w-full bg-[#25D366] hover:bg-[#20ba56] text-white border-none shadow-lg shadow-green-500/20 py-4 sm:py-5 flex items-center justify-center gap-2 font-medium"
                       onClick={() => handleSendWhatsApp(order)}
                     >
-                      <MessageSquare className="w-4 h-4 fill-white" />
+                      <MessageSquare className="w-4 h-4 fill-white shrink-0" />
                       Send to WhatsApp
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground py-5 flex items-center justify-center gap-2"
+                      className="w-full border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground py-4 sm:py-5 flex items-center justify-center gap-2"
                       onClick={() => {
                         const msg = buildWhatsAppOrderMessage({
                           orderId: order.id,
@@ -400,7 +400,7 @@ export default function PayPage() {
                         toast.success("Order summary copied to clipboard!");
                       }}
                     >
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-4 h-4 shrink-0" />
                       Copy Receipt Text
                     </Button>
                   </div>
@@ -417,22 +417,22 @@ export default function PayPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-6 py-4">
-              <div className="flex flex-col items-center justify-center p-8 bg-card border border-border/50 rounded-2xl">
-                <CreditCard className="w-16 h-16 text-primary mb-4 animate-pulse" />
-                <h3 className="font-display text-2xl text-foreground mb-2">Automated Online Payment</h3>
-                <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
+            <div className="space-y-6 py-2 sm:py-4">
+              <div className="flex flex-col items-center justify-center p-5 sm:p-8 bg-background/50 border border-border/50 rounded-2xl">
+                <CreditCard className="w-14 h-14 sm:w-16 sm:h-16 text-primary mb-3 sm:mb-4 animate-pulse" />
+                <h3 className="font-display text-xl sm:text-2xl text-foreground mb-2">Automated Online Payment</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground text-center max-w-sm mb-6">
                   Secure checkout via Razorpay. Pay automatically using credit/debit cards, net banking, UPI apps, or wallets.
                 </p>
 
                 {paymentError && (
-                  <div className="w-full mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-start gap-3 text-left">
+                  <div className="w-full mb-6 p-3.5 sm:p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-start gap-3 text-left">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-semibold">{paymentError}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold break-words">{paymentError}</p>
                       {paymentError.toLowerCase().includes("authentication failed") && (
-                        <p className="text-xs mt-1 text-muted-foreground">
-                          Please verify your <code className="bg-background/80 px-1 py-0.5 rounded font-mono">VITE_RAZORPAY_KEY_ID</code> and <code className="bg-background/80 px-1 py-0.5 rounded font-mono">RAZORPAY_KEY_SECRET</code> in your <code className="bg-background/80 px-1 py-0.5 rounded font-mono">.env</code> file.
+                        <p className="text-xs mt-1.5 text-muted-foreground break-words leading-relaxed">
+                          Please verify your <code className="bg-background/80 px-1 py-0.5 rounded font-mono text-[11px]">VITE_RAZORPAY_KEY_ID</code> and <code className="bg-background/80 px-1 py-0.5 rounded font-mono text-[11px]">RAZORPAY_KEY_SECRET</code> in Vercel Environment Variables.
                         </p>
                       )}
                     </div>
@@ -441,23 +441,22 @@ export default function PayPage() {
 
                 <Button
                   variant="hero"
-                  size="lg"
-                  className="w-full py-6 flex items-center justify-center gap-2 font-display text-lg shadow-lg shadow-primary/25"
+                  className="w-full min-h-[3.25rem] h-auto px-4 py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2.5 font-display text-base sm:text-lg shadow-lg shadow-primary/25 transition-all"
                   onClick={handleRazorpayPayment}
                   disabled={confirming}
                 >
                   {confirming ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      Loading Gateway...
+                      <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                      <span>Loading Gateway...</span>
                     </>
                   ) : paymentError ? (
                     <>
-                      <RefreshCw className="w-5 h-5 mr-2" />
-                      Retry Payment ₹{order.total_inr.toFixed(2)}
+                      <RefreshCw className="w-5 h-5 shrink-0" />
+                      <span>Retry Payment ₹{order.total_inr.toFixed(2)}</span>
                     </>
                   ) : (
-                    <>Pay Securely ₹{order.total_inr.toFixed(2)}</>
+                    <span>Pay Securely ₹{order.total_inr.toFixed(2)}</span>
                   )}
                 </Button>
               </div>
