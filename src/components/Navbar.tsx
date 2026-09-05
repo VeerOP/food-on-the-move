@@ -172,10 +172,10 @@ export function Navbar() {
               );
             })}
             <ThemeToggle />
-            <Link to="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors">
+            <Link to="/cart" className="relative p-2 text-foreground hover:text-primary transition-colors flex items-center justify-center">
               <ShoppingCart size={22} />
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md animate-pulse">
                   {count}
                 </span>
               )}
@@ -212,13 +212,29 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden p-2 text-foreground"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          {/* Mobile Right Controls: Theme + Cart + Menu Button */}
+          <div className="flex items-center gap-1.5 md:hidden">
+            <ThemeToggle />
+            <Link
+              to="/cart"
+              aria-label="Shopping Cart"
+              className="relative p-2 text-foreground hover:text-primary transition-colors flex items-center justify-center"
+            >
+              <ShoppingCart size={22} />
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-md animate-pulse">
+                  {count}
+                </span>
+              )}
+            </Link>
+            <button
+              className="p-2 text-foreground rounded-lg hover:bg-muted/40 transition-colors"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -3,16 +3,10 @@ import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { CATALOG, CatalogProduct, ProductCategory, variantPrice } from "@/lib/catalog";
+import { CATALOG, CatalogProduct, ProductCategory } from "@/lib/catalog";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Eye, Sparkles, Filter, ArrowLeft } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ShoppingCart, Eye, Sparkles, ArrowLeft } from "lucide-react";
 
 const CATEGORIES: { id: ProductCategory | "all"; label: string }[] = [
   { id: "all", label: "All Products" },
@@ -61,12 +55,17 @@ export default function Products() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Link to="/#products" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6 font-medium">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home Section
-            </Link>
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-semibold uppercase tracking-wider mb-4">
-              <Sparkles className="w-3.5 h-3.5" /> Complete Product Range
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6">
+              <Link
+                to="/#products"
+                className="inline-flex items-center gap-2 text-xs sm:text-sm text-muted-foreground hover:text-foreground hover:text-primary transition-colors font-medium bg-card/70 border border-border/60 hover:border-primary/50 px-3.5 py-1.5 rounded-full shadow-sm"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                Back to Home Section
+              </Link>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/25 text-primary text-xs font-semibold uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" /> Complete Product Range
+              </div>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-foreground font-bold">
               EXPLORE OUR <span className="text-gradient">FULL COLLECTION</span>
@@ -183,69 +182,16 @@ export default function Products() {
                           Sold Out
                         </Button>
                       ) : (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                          <Button
-                            disabled={addingSlug === product.slug}
-                            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl py-2.5 shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
-                          >
-                            <ShoppingCart className="w-3.5 h-3.5" />
-                            {addingSlug === product.slug ? "Adding..." : "Add to Cart"}
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          align="center"
-                          className="w-56 mt-1 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-md shadow-xl p-1.5"
+                        <Button
+                          disabled={addingSlug === product.slug}
+                          onClick={(e) => handleAddToCart(product, e)}
+                          className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-xl py-2.5 shadow-md flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
                         >
-                          <DropdownMenuItem
-                            className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setAddingSlug(product.slug);
-                              await addToCart(product.slug, { qty: 1, variant: "single" });
-                              setAddingSlug(null);
-                            }}
-                          >
-                            <div className="flex justify-between w-full font-medium text-sm">
-                              <span>Single Pack</span>
-                              <span className="text-primary">₹{variantPrice("single", product.slug)}</span>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setAddingSlug(product.slug);
-                              await addToCart(product.slug, { qty: 1, variant: "po3", packItems: [] });
-                              setAddingSlug(null);
-                            }}
-                          >
-                            <div className="flex justify-between w-full font-medium text-sm">
-                              <span>Pack of 3</span>
-                              <span className="text-primary">₹{variantPrice("po3", product.slug)}</span>
-                            </div>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                            onClick={async (e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setAddingSlug(product.slug);
-                              await addToCart(product.slug, { qty: 1, variant: "po5", packItems: [] });
-                              setAddingSlug(null);
-                            }}
-                          >
-                            <div className="flex justify-between w-full font-medium text-sm">
-                              <span>Pack of 5</span>
-                              <span className="text-primary">₹{variantPrice("po5", product.slug)}</span>
-                            </div>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                    <Link to={`/product/${product.slug}`} state={{ from: "/products" }}>
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                          {addingSlug === product.slug ? "Adding..." : "Add to Cart"}
+                        </Button>
+                      )}
+                      <Link to={`/product/${product.slug}`} state={{ from: "/products" }}>
                         <Button
                           variant="outline"
                           size="icon"

@@ -85,7 +85,11 @@ export default defineConfig(({ mode }) => {
 
                 const data = await response.json();
                 if (!response.ok) {
-                  throw new Error(data.error?.description || "Razorpay API error");
+                  let errDesc = data.error?.description || "Razorpay API error";
+                  if (errDesc.toLowerCase().includes("authentication failed")) {
+                    errDesc = "Razorpay Authentication Failed: Invalid Key ID or Key Secret in .env";
+                  }
+                  throw new Error(errDesc);
                 }
 
                 res.statusCode = 200;

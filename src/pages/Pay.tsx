@@ -1,16 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import QRCode from "qrcode";
-import { Copy, Smartphone, CheckCircle2, CreditCard, Loader2, MessageSquare } from "lucide-react";
+import { Copy, CheckCircle2, CreditCard, Loader2, MessageSquare, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
-import { buildUpiUri, UPI_PAYEE_VPA, UPI_PAYEE_NAME } from "@/lib/upi";
 import { buildWhatsAppOrderMessage, whatsappLink, googleMapsLink } from "@/lib/notify";
 import { toast } from "sonner";
 
@@ -62,10 +58,9 @@ export default function PayPage() {
   const { user } = useAuth();
   const { clearCart } = useCart();
   const [order, setOrder] = useState<Order | null>(null);
-  const [qrDataUrl, setQrDataUrl] = useState<string>("");
-  const [screenshot, setScreenshot] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -123,36 +118,10 @@ export default function PayPage() {
         })),
       };
       setOrder(ord);
-      const uri = buildUpiUri({
-        amount: ord.total_inr,
-        transactionNote: `Order ${ord.id.slice(0, 8)}`,
-        transactionRef: ord.id.slice(0, 12),
-      });
-      QRCode.toDataURL(uri, { width: 320, margin: 1 }).then(setQrDataUrl);
     })();
   }, [id, user, navigate]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File is too large. Upload an image under 5MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setScreenshot(reader.result);
-        toast.success("Screenshot loaded successfully");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
   const handleSendWhatsApp = (ord: Order) => {
-    const isRazorpay = ord.upi_reference && ord.upi_reference.startsWith("pay_");
     const msg = buildWhatsAppOrderMessage({
       orderId: ord.id,
       customerName: ord.customer_name,
@@ -165,8 +134,8 @@ export default function PayPage() {
       subtotal: ord.subtotal_inr,
       deliveryFee: ord.delivery_fee_inr,
       total: ord.total_inr,
-      paymentStatus: isRazorpay ? "Paid (Razorpay)" : "Paid (UPI)",
-      upiReference: ord.upi_reference && ord.upi_reference.startsWith("data:image/") ? "Screenshot Uploaded" : ord.upi_reference,
+      paymentStatus: "Paid (Razorpay)",
+      upiReference: ord.upi_reference,
       createdAt: ord.created_at,
       items: ord.order_items.map((it) => ({
         name: it.product_name,
@@ -179,13 +148,17 @@ export default function PayPage() {
     window.open(whatsappLink(msg), "_blank", "noopener");
   };
 
-  const handleRazorpayPayment = async () => {
+  const handleRazorpayPayment = useCallback(async () => {
     if (!order) return;
     setConfirming(true);
+    setPaymentError(null);
+
     const loaded = await loadRazorpay();
     if (!loaded) {
       setConfirming(false);
-      toast.error("Failed to load Razorpay SDK. Please check your internet connection.");
+      const msg = "Failed to load Razorpay SDK. Please check your internet connection.";
+      setPaymentError(msg);
+      toast.error(msg);
       return;
     }
 
@@ -215,7 +188,9 @@ export default function PayPage() {
 
       if (!activeKey) {
         setConfirming(false);
-        toast.error("Razorpay Key ID is not configured. Please check your environment variables.");
+        const msg = "Razorpay Key ID is not configured. Please check your environment variables.";
+        setPaymentError(msg);
+        toast.error(msg);
         return;
       }
 
@@ -226,7 +201,7 @@ export default function PayPage() {
         currency: "INR",
         name: "Food on the Move",
         description: `Order #${order.id.slice(0, 8)}`,
-        order_id: order_id, // Pass order_id here
+        order_id: order_id,
         handler: async function (response: any) {
           const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
           setConfirming(true);
@@ -273,7 +248,9 @@ export default function PayPage() {
             setOrder(updatedOrder);
             handleSendWhatsApp(updatedOrder);
           } catch (err: any) {
-            toast.error(err.message || "Failed to verify signature");
+            const msg = err.message || "Failed to verify signature";
+            setPaymentError(msg);
+            toast.error(msg);
           } finally {
             setConfirming(false);
           }
@@ -289,7 +266,7 @@ export default function PayPage() {
         modal: {
           ondismiss: function () {
             setConfirming(false);
-            toast.error("Payment cancelled");
+            toast.error("Payment modal closed");
           },
         },
       };
@@ -299,92 +276,33 @@ export default function PayPage() {
     } catch (err: any) {
       setConfirming(false);
       console.error(err);
-      toast.error(err.message || "Failed to initialize payment gateway");
+      const msg = err.message || "Failed to initialize payment gateway";
+      setPaymentError(msg);
+      toast.error(msg);
     }
-  };
-
-  const switchPaymentMethod = async (method: "razorpay" | "upi") => {
-    if (!order) return;
-    setConfirming(true);
-    const { error } = await supabase
-      .from("orders")
-      .update({ payment_method: method })
-      .eq("id", order.id);
-
-    if (error) {
-      setConfirming(false);
-      toast.error(error.message);
-      return;
-    }
-
-    setOrder({
-      ...order,
-      payment_method: method,
-    });
-    setConfirming(false);
-    toast.success(`Switched to ${method === "razorpay" ? "Online Payment" : "Manual UPI Transfer"}`);
-  };
+  }, [order, user?.email, clearCart]);
 
   useEffect(() => {
-    if (order && order.status === "pending_payment" && order.payment_method === "razorpay" && !hasAutoTriggered) {
+    if (order && order.status === "pending_payment" && !hasAutoTriggered) {
       setHasAutoTriggered(true);
       const timer = setTimeout(() => {
         handleRazorpayPayment();
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [order?.id, order?.payment_method, order?.status, hasAutoTriggered]);
-
-  const confirmPayment = async () => {
-    if (!order) return;
-    if (!screenshot) {
-      toast.error("Please upload a payment screenshot");
-      return;
-    }
-    setConfirming(true);
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        status: "paid",
-        upi_reference: screenshot,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", order.id);
-    if (error) {
-      setConfirming(false);
-      toast.error(error.message);
-      return;
-    }
-
-    await clearCart();
-
-    toast.success("Payment recorded! Your order is confirmed.");
-    
-    const updatedOrder = {
-      ...order,
-      status: "paid",
-      upi_reference: screenshot,
-    };
-    setOrder(updatedOrder);
-    setConfirming(false);
-
-    handleSendWhatsApp(updatedOrder);
-  };
+  }, [order, hasAutoTriggered, handleRazorpayPayment]);
 
   if (!order) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-32 section-container">Loading…</div>
+        <div className="pt-32 section-container text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary mb-2" />
+          <p className="text-muted-foreground">Loading order details…</p>
+        </div>
       </div>
     );
   }
-
-  const upiUri = buildUpiUri({
-    amount: order.total_inr,
-    transactionNote: `Order ${order.id.slice(0, 8)}`,
-    transactionRef: order.id.slice(0, 12),
-  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -406,9 +324,9 @@ export default function PayPage() {
             <div className="py-8 space-y-6 text-center">
               <div className="flex flex-col items-center">
                 <CheckCircle2 className="w-16 h-16 text-primary mb-3 animate-pulse" />
-                <h2 className="font-display text-3xl mb-1 text-foreground">Order Confirmed!</h2>
+                <h2 className="font-display text-3xl mb-1 text-foreground">Payment Received!</h2>
                 <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                  Thank you! We have received your payment reference. Please complete the step below.
+                  Your order is confirmed via Razorpay (Ref: <span className="font-mono text-xs text-primary">{order.upi_reference}</span>).
                 </p>
               </div>
 
@@ -455,7 +373,6 @@ export default function PayPage() {
                       variant="outline"
                       className="w-full border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground py-5 flex items-center justify-center gap-2"
                       onClick={() => {
-                        const isRazorpay = order.upi_reference && order.upi_reference.startsWith("pay_");
                         const msg = buildWhatsAppOrderMessage({
                           orderId: order.id,
                           customerName: order.customer_name,
@@ -468,7 +385,7 @@ export default function PayPage() {
                           subtotal: order.subtotal_inr,
                           deliveryFee: order.delivery_fee_inr,
                           total: order.total_inr,
-                          paymentStatus: isRazorpay ? "Paid (Razorpay)" : "Paid (UPI)",
+                          paymentStatus: "Paid (Razorpay)",
                           upiReference: order.upi_reference,
                           createdAt: order.created_at,
                           items: order.order_items.map((it) => ({
@@ -505,12 +422,27 @@ export default function PayPage() {
                 <CreditCard className="w-16 h-16 text-primary mb-4 animate-pulse" />
                 <h3 className="font-display text-2xl text-foreground mb-2">Automated Online Payment</h3>
                 <p className="text-sm text-muted-foreground text-center max-w-sm mb-6">
-                  Secure checkout via Razorpay. Pay automatically using credit/debit cards, net banking, UPI, or mobile wallets.
+                  Secure checkout via Razorpay. Pay automatically using credit/debit cards, net banking, UPI apps, or wallets.
                 </p>
+
+                {paymentError && (
+                  <div className="w-full mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-start gap-3 text-left">
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">{paymentError}</p>
+                      {paymentError.toLowerCase().includes("authentication failed") && (
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          Please verify your <code className="bg-background/80 px-1 py-0.5 rounded font-mono">VITE_RAZORPAY_KEY_ID</code> and <code className="bg-background/80 px-1 py-0.5 rounded font-mono">RAZORPAY_KEY_SECRET</code> in your <code className="bg-background/80 px-1 py-0.5 rounded font-mono">.env</code> file.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <Button
                   variant="hero"
                   size="lg"
-                  className="w-full py-6 flex items-center justify-center gap-2 font-display text-lg"
+                  className="w-full py-6 flex items-center justify-center gap-2 font-display text-lg shadow-lg shadow-primary/25"
                   onClick={handleRazorpayPayment}
                   disabled={confirming}
                 >
@@ -518,6 +450,11 @@ export default function PayPage() {
                     <>
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
                       Loading Gateway...
+                    </>
+                  ) : paymentError ? (
+                    <>
+                      <RefreshCw className="w-5 h-5 mr-2" />
+                      Retry Payment ₹{order.total_inr.toFixed(2)}
                     </>
                   ) : (
                     <>Pay Securely ₹{order.total_inr.toFixed(2)}</>

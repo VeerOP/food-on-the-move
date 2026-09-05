@@ -49,7 +49,10 @@ export default async function handler(req: any, res: any) {
     });
   } catch (error: any) {
     console.error("Razorpay order creation error:", error);
-    const errorDescription = error?.error?.description || error?.message || (typeof error === "string" ? error : "Failed to create Razorpay order");
+    let errorDescription = error?.error?.description || error?.message || (typeof error === "string" ? error : "Failed to create Razorpay order");
+    if (errorDescription.toLowerCase().includes("authentication failed")) {
+      errorDescription = "Razorpay Authentication Failed: Invalid Key ID or Key Secret configured in .env";
+    }
     return res.status(500).json({ error: errorDescription });
   }
 }

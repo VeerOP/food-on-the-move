@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useCart } from "@/hooks/use-cart";
-import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
+import { CATALOG } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import {
   Carousel,
@@ -383,34 +383,25 @@ export default function ProductDetail() {
         lifestyleCaption: "",
       } : null)) 
     : null;
-  const { addToCart, clearCart } = useCart();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
-  const [variant, setVariant] = useState<Variant>("single");
   const [adding, setAdding] = useState(false);
 
-  const currentPrice = catalogEntry ? variantPrice(variant, catalogEntry.slug) : 0;
+  const currentPrice = catalogEntry?.price ?? 0;
 
-  const handleAdd = async (packItems?: string[]) => {
+  const handleAdd = async () => {
     if (!catalogEntry) return;
     setAdding(true);
-    await addToCart(catalogEntry.slug, { variant, packItems: packItems ?? [] });
+    await addToCart(catalogEntry.slug, { qty: 1, variant: "single" });
     setAdding(false);
   };
 
-  const handleBuyNow = async (packItems?: string[]) => {
+  const handleBuyNow = async () => {
     if (!catalogEntry) return;
     setAdding(true);
-    await addToCart(catalogEntry.slug, { variant, packItems: packItems ?? [] });
+    await addToCart(catalogEntry.slug, { qty: 1, variant: "single" });
     setAdding(false);
     navigate("/checkout");
-  };
-
-  const onPrimaryClick = (buyNow: boolean) => {
-    if (buyNow) {
-      handleBuyNow([]);
-    } else {
-      handleAdd([]);
-    }
   };
 
 
@@ -583,46 +574,13 @@ export default function ProductDetail() {
                 ))}
               </div>
 
-              {/* Variant Selector + Order Buttons */}
+              {/* Order Buttons */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.8 }}
-                className="space-y-4"
+                className="space-y-4 pt-2"
               >
-                {catalogEntry && (
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Choose pack</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {(Object.keys(VARIANT_META) as Variant[]).map((v) => {
-                        const meta = VARIANT_META[v];
-                        const price = variantPrice(v, catalogEntry.slug);
-                        const active = variant === v;
-                        return (
-                          <button
-                            key={v}
-                            onClick={() => setVariant(v)}
-                            className={cn(
-                              "rounded-xl border-2 p-3 text-left transition-all",
-                              active
-                                ? "border-primary bg-primary/10 shadow-lg shadow-primary/20"
-                                : "border-border/50 bg-card hover:border-primary/50"
-                            )}
-                          >
-                            <p className="text-sm font-semibold">{meta.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {v === "single" ? "1 pack" : `Mix ${meta.count}`}
-                            </p>
-                            <p className={cn("text-base font-bold mt-1", active ? "text-primary" : "text-foreground")}>
-                              ₹{price}
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
                 <div className="flex flex-col sm:flex-row gap-3">
                   {catalogEntry?.isSoldOut ? (
                     <Button
@@ -638,21 +596,21 @@ export default function ProductDetail() {
                         <Button
                           variant="hero"
                           size="lg"
-                          className="w-full sm:w-auto"
-                          onClick={() => onPrimaryClick(false)}
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 shadow-lg shadow-primary/25 cursor-pointer"
+                          onClick={handleAdd}
                           disabled={adding}
                         >
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Add to Cart — ₹{currentPrice}
+                          <ShoppingCart className="w-4 h-4" />
+                          {adding ? "Adding..." : `Add to Cart — ₹${currentPrice}`}
                         </Button>
                         <Button
                           variant="glow"
                           size="lg"
-                          className="w-full sm:w-auto"
-                          onClick={() => onPrimaryClick(true)}
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
+                          onClick={handleBuyNow}
                           disabled={adding}
                         >
-                          <ZapIcon className="w-4 h-4 mr-2" />
+                          <ZapIcon className="w-4 h-4" />
                           Buy Now
                         </Button>
                       </>

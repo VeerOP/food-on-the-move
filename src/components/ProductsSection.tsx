@@ -5,13 +5,6 @@ import { Link } from "react-router-dom";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { variantPrice } from "@/lib/catalog";
 
 import productCorn from "@/assets/product-corn-main.webp";
 import productJowar from "@/assets/product-jowar-main.webp";
@@ -173,70 +166,19 @@ function ProductCard({ product, index }: { product: typeof products[0]; index: n
               </div>
             </div>
 
-            {/* Add to Cart dropdown button */}
+            {/* Add to Cart button */}
             <div className="mt-auto pt-4 relative z-20">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                    }}
-                    variant="hero"
-                    className="w-full py-4 text-xs font-semibold rounded-2xl shadow-lg transition-all duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform translate-y-1 md:group-hover:translate-y-0 flex items-center justify-center gap-2"
-                  >
-                    <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="center" 
-                  className="w-56 mt-1 rounded-2xl border border-border/50 bg-background/95 backdrop-blur-md shadow-xl p-1.5"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                >
-                  <DropdownMenuItem
-                    className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      await addToCart(product.slug, { qty: 1, variant: "single" });
-                    }}
-                  >
-                    <div className="flex justify-between w-full font-medium text-sm">
-                      <span>Single Pack</span>
-                      <span className="text-primary">₹{variantPrice("single", product.slug)}</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      await addToCart(product.slug, { qty: 1, variant: "po3", packItems: [] });
-                    }}
-                  >
-                    <div className="flex justify-between w-full font-medium text-sm">
-                      <span>Pack of 3</span>
-                      <span className="text-primary">₹{variantPrice("po3", product.slug)}</span>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer py-2 px-3 rounded-xl hover:bg-primary/10 transition-colors focus:bg-primary/10"
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      await addToCart(product.slug, { qty: 1, variant: "po5", packItems: [] });
-                    }}
-                  >
-                    <div className="flex justify-between w-full font-medium text-sm">
-                      <span>Pack of 5</span>
-                      <span className="text-primary">₹{variantPrice("po5", product.slug)}</span>
-                    </div>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  await addToCart(product.slug, { qty: 1, variant: "single" });
+                }}
+                variant="hero"
+                className="w-full py-4 text-xs font-semibold rounded-2xl shadow-lg transition-all duration-300 opacity-100 md:opacity-0 md:group-hover:opacity-100 transform translate-y-1 md:group-hover:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <ShoppingCart className="w-3.5 h-3.5" /> Add to Cart — ₹{product.price}
+              </Button>
             </div>
 
             {/* Hover Effect Background Overlay */}

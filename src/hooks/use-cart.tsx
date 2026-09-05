@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
 import { toast } from "sonner";
+import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
 
 export type CartItem = {
   id: string;
@@ -12,7 +13,7 @@ export type CartItem = {
   price_inr: number;
   quantity: number;
   variant: Variant;
-  pack_items: string[]; // slugs of mixed pack contents (for po3/po4)
+  pack_items: string[];
 };
 
 export type AddOptions = {
@@ -35,6 +36,8 @@ type CartCtx = {
   refresh: () => Promise<void>;
   applyCoupon: (code: string) => boolean;
   removeCoupon: () => void;
+  openAddedModal: (info: AddedItemInfo) => void;
+  closeAddedModal: () => void;
 };
 
 const CART_STORAGE_KEY = "fomo_cart_items";
@@ -85,6 +88,8 @@ const Ctx = createContext<CartCtx>({
   refresh: async () => {},
   applyCoupon: () => false,
   removeCoupon: () => {},
+  openAddedModal: () => {},
+  closeAddedModal: () => {},
 });
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -95,6 +100,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [couponCode, setCouponCode] = useState<string>(() => {
     return localStorage.getItem(COUPON_STORAGE_KEY) || "";
   });
+  const [addedItem, setAddedItem] = useState<AddedItemInfo | null>(null);
+  const [isAddedModalOpen, setIsAddedModalOpen] = useState(false);
   const hasMergedUserCart = useRef<string | null>(null);
 
   // Sync state to localStorage whenever items change
@@ -260,6 +267,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     syncFreeGift();
   }, [items, user, loading, couponCode, updateItems]);
 
+  const showPopup = (product: { name: string; image: string | null; slug: string }, price: number, qty: number) => {
+    setAddedItem({
+      slug: product.slug,
+      name: product.name,
+      image: product.image,
+      price: price * qty,
+      qty,
+    });
+    setIsAddedModalOpen(true);
+  };
+
   const addToCart = async (slug: string, opts: AddOptions = {}) => {
     const variant: Variant = opts.variant ?? "single";
     const product = CATALOG[slug];
@@ -271,29 +289,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       qty = product.moq;
     }
 
-    // Validate mixed pack size
-    let packItems = opts.packItems ?? [];
-    if (variant !== "single") {
-      const expected = VARIANT_META[variant].count;
-      if (packItems.length === 0) {
-        packItems = Array(expected).fill(slug);
-      }
-      if (packItems.length !== expected) {
-        toast.error(`Select exactly ${expected} items for ${VARIANT_META[variant].label}`);
-        return;
-      }
-    }
-
     const price = variantPrice(variant, slug);
 
-    // Merge same-variant single items; keep mixed packs as separate lines
-    if (variant === "single") {
-      const existing = items.find((i) => i.product_slug === slug && i.variant === "single" && i.price_inr === price);
-      if (existing) {
-        await updateQty(existing.id, existing.quantity + qty);
-        toast.success(`Updated ${product.name} quantity`);
-        return;
-      }
+    // Merge same-variant single items
+    const existing = items.find((i) => i.product_slug === slug && i.variant === variant && i.price_inr === price);
+    if (existing) {
+      await updateQty(existing.id, existing.quantity + qty);
+      showPopup(product, price, qty);
+      return;
     }
 
     if (user) {
@@ -305,7 +308,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         price_inr: price,
         quantity: qty,
         variant,
-        pack_items: packItems,
+        pack_items: [],
       }).select("id").single();
 
       if (error) {
@@ -321,11 +324,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         price_inr: price,
         quantity: qty,
         variant,
-        pack_items: packItems,
+        pack_items: [],
       };
 
       updateItems((prev) => [...prev, newItem]);
-      toast.success(`${product.name} added to cart`);
+      showPopup(product, price, qty);
     } else {
       // Guest mode: save immediately to local storage
       const newItem: CartItem = {
@@ -336,11 +339,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         price_inr: price,
         quantity: qty,
         variant,
-        pack_items: packItems,
+        pack_items: [],
       };
 
       updateItems((prev) => [...prev, newItem]);
-      toast.success(`${product.name} added to cart`);
+      showPopup(product, price, qty);
     }
   };
 
@@ -425,6 +428,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     toast.success("Coupon removed");
   };
 
+  const openAddedModal = (info: AddedItemInfo) => {
+    setAddedItem(info);
+    setIsAddedModalOpen(true);
+  };
+
+  const closeAddedModal = () => {
+    setIsAddedModalOpen(false);
+  };
+
   return (
     <Ctx.Provider
       value={{
@@ -441,9 +453,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
         refresh,
         applyCoupon,
         removeCoupon,
+        openAddedModal,
+        closeAddedModal,
       }}
     >
       {children}
+      <AddedToCartModal
+        isOpen={isAddedModalOpen}
+        onClose={closeAddedModal}
+        item={addedItem}
+        cartCount={count}
+        cartSubtotal={subtotal}
+      />
     </Ctx.Provider>
   );
 }
