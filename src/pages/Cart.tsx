@@ -12,12 +12,20 @@ import { useAuth } from "@/hooks/use-auth";
 import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery";
 import { CATALOG, variantLabel } from "@/lib/catalog";
 
+import { toast } from "sonner";
+
 export default function CartPage() {
-  const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, applyCoupon, removeCoupon } = useCart();
+  const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, applyCoupon, removeCoupon, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState("");
 
+  const handleClearCart = async () => {
+    if (window.confirm("Are you sure you want to empty your entire cart?")) {
+      await clearCart();
+      toast.success("Cart cleared");
+    }
+  };
 
   const deliveryFee = computeDeliveryFee(subtotal);
   const total = subtotal - discount + deliveryFee;
@@ -27,13 +35,26 @@ export default function CartPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="pt-32 pb-16 section-container">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="font-display text-5xl md:text-6xl mb-8"
-        >
-          Your <span className="text-gradient">Cart</span>
-        </motion.h1>
+        <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="font-display text-4xl sm:text-5xl md:text-6xl"
+          >
+            Your <span className="text-gradient">Cart</span>
+          </motion.h1>
+
+          {items.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClearCart}
+              className="text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive rounded-xl gap-1.5 text-xs font-semibold px-3 py-2 cursor-pointer shadow-sm transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Clear Cart
+            </Button>
+          )}
+        </div>
 
         {loading ? (
           <p className="text-muted-foreground">Loading...</p>
