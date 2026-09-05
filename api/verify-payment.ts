@@ -13,11 +13,11 @@ export default async function handler(req: any, res: any) {
     return res.status(400).json({ error: "Missing required signature verification fields" });
   }
 
-  const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || "";
+  const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || process.env.VITE_RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET || "";
   const keySecret = rawKeySecret.replace(/['"\s]/g, "").trim();
 
   if (!keySecret) {
-    return res.status(500).json({ error: "Razorpay credentials are not configured on the server" });
+    return res.status(500).json({ error: "Razorpay credentials are not configured in Vercel environment variables. Please configure RAZORPAY_KEY_SECRET." });
   }
 
   try {

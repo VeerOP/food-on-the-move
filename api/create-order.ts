@@ -19,14 +19,16 @@ export default async function handler(req: any, res: any) {
   }
 
   const rawKeyId = process.env.VITE_RAZORPAY_KEY_ID || process.env.RAZORPAY_KEY_ID || "";
-  const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || "";
+  const rawKeySecret = process.env.RAZORPAY_KEY_SECRET || process.env.VITE_RAZORPAY_KEY_SECRET || process.env.RAZORPAY_SECRET || "";
 
   // Strip accidental quotes or whitespace
   const keyId = rawKeyId.replace(/['"\s]/g, "").trim();
   const keySecret = rawKeySecret.replace(/['"\s]/g, "").trim();
 
   if (!keyId || !keySecret) {
-    return res.status(500).json({ error: "Razorpay credentials are not configured on the server" });
+    return res.status(500).json({ 
+      error: "Razorpay credentials are not configured in Vercel environment variables. Please set VITE_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Vercel Settings -> Environment Variables and redeploy." 
+    });
   }
 
   try {
@@ -51,7 +53,7 @@ export default async function handler(req: any, res: any) {
     console.error("Razorpay order creation error:", error);
     let errorDescription = error?.error?.description || error?.message || (typeof error === "string" ? error : "Failed to create Razorpay order");
     if (errorDescription.toLowerCase().includes("authentication failed")) {
-      errorDescription = "Razorpay Authentication Failed: Invalid Key ID or Key Secret configured in .env";
+      errorDescription = "Razorpay Authentication Failed: The Key ID or Key Secret in your Vercel Environment Variables is incorrect or expired. Please update VITE_RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in Vercel settings and redeploy.";
     }
     return res.status(500).json({ error: errorDescription });
   }
