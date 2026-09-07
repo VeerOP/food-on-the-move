@@ -8,11 +8,13 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
+import { useInventory } from "@/lib/inventory";
 import { CATALOG, CatalogProduct } from "@/lib/catalog";
 
 export default function HampersPage() {
   const { user } = useAuth();
   const { addToCart } = useCart();
+  const { isSoldOut } = useInventory();
   const navigate = useNavigate();
 
   // Get only hampers from catalog
@@ -142,7 +144,7 @@ export default function HampersPage() {
 
                   {/* Image wrapper */}
                   <div className="relative h-64 mb-6 rounded-2xl bg-muted/30 overflow-hidden flex items-center justify-center">
-                    {product.isSoldOut && (
+                    {isSoldOut(product.slug) && (
                       <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] z-20 flex items-center justify-center pointer-events-none transition-all">
                         <span className="border-4 border-destructive text-destructive font-display text-2xl font-black uppercase tracking-widest px-4 py-2 rounded-xl rotate-[-12deg] shadow-2xl select-none bg-black/75">
                           Sold Out
@@ -181,7 +183,7 @@ export default function HampersPage() {
                     </div>
                     
                     {/* Quantity selectors */}
-                    {!product.isSoldOut && (
+                    {!isSoldOut(product.slug) && (
                       <div className="flex items-center gap-3">
                         <Button
                           size="icon"
@@ -207,7 +209,7 @@ export default function HampersPage() {
 
                   {/* Call to action */}
                   <div className="flex flex-col gap-2">
-                    {product.isSoldOut ? (
+                    {isSoldOut(product.slug) ? (
                       <Button
                         disabled
                         variant="outline"

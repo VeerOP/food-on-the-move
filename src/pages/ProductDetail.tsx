@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useCart } from "@/hooks/use-cart";
+import { useInventory } from "@/lib/inventory";
 import { CATALOG } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 import {
@@ -384,20 +385,22 @@ export default function ProductDetail() {
       } : null)) 
     : null;
   const { addToCart } = useCart();
+  const { isSoldOut } = useInventory();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
 
+  const isCurrentItemSoldOut = slug ? isSoldOut(slug) : false;
   const currentPrice = catalogEntry?.price ?? 0;
 
   const handleAdd = async () => {
-    if (!catalogEntry) return;
+    if (!catalogEntry || isCurrentItemSoldOut) return;
     setAdding(true);
     await addToCart(catalogEntry.slug, { qty: 1, variant: "single" });
     setAdding(false);
   };
 
   const handleBuyNow = async () => {
-    if (!catalogEntry) return;
+    if (!catalogEntry || isCurrentItemSoldOut) return;
     setAdding(true);
     await addToCart(catalogEntry.slug, { qty: 1, variant: "single" });
     setAdding(false);
@@ -470,7 +473,7 @@ export default function ProductDetail() {
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${product.color} rounded-full blur-[100px] opacity-60`} />
               <div className="relative z-10 w-full max-w-md">
-                {catalogEntry?.isSoldOut && (
+                {isCurrentItemSoldOut && (
                   <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] z-30 flex items-center justify-center rounded-3xl overflow-hidden pointer-events-none transition-all">
                     <span className="border-4 border-destructive text-destructive font-display text-3xl font-black uppercase tracking-widest px-6 py-3 rounded-2xl rotate-[-12deg] shadow-2xl select-none bg-black/75">
                       Sold Out
@@ -525,7 +528,7 @@ export default function ProductDetail() {
                 <h1 className="font-display text-5xl md:text-6xl lg:text-7xl mt-2 text-foreground">
                   {product.name}
                 </h1>
-                {catalogEntry?.isSoldOut && (
+                {isCurrentItemSoldOut && (
                   <span className="bg-destructive text-destructive-foreground text-sm font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-xl shadow-md mt-2">
                     Sold Out
                   </span>
@@ -582,7 +585,7 @@ export default function ProductDetail() {
                 className="space-y-4 pt-2"
               >
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {catalogEntry?.isSoldOut ? (
+                  {isCurrentItemSoldOut ? (
                     <Button
                       disabled
                       size="lg"

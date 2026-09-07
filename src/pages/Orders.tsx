@@ -13,6 +13,8 @@ import { STATUS_LABEL, STATUS_STYLE, OrderStatus } from "@/lib/orderStatus";
 
 type OrderRow = {
   id: string;
+  customer_name?: string;
+  customer_phone?: string;
   status: string;
   total_inr: number;
   subtotal_inr: number;
@@ -43,7 +45,7 @@ export default function OrdersPage() {
     (async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, status, total_inr, subtotal_inr, delivery_fee_inr, delivery_address, delivery_distance_km, upi_reference, created_at, order_items(product_name, quantity, line_total_inr)")
+        .select("id, customer_name, customer_phone, status, total_inr, subtotal_inr, delivery_fee_inr, delivery_address, delivery_distance_km, upi_reference, created_at, order_items(product_name, quantity, line_total_inr)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (!error && data) {
@@ -159,8 +161,8 @@ export default function OrdersPage() {
                         const isRazorpay = o.upi_reference && o.upi_reference.startsWith("pay_");
                         const msg = buildWhatsAppOrderMessage({
                           orderId: o.id,
-                          customerName: user?.email ? user.email.split("@")[0] : "Customer",
-                          customerPhone: "",
+                          customerName: o.customer_name || (user?.email ? user.email.split("@")[0] : "Customer"),
+                          customerPhone: o.customer_phone || "",
                           address: o.delivery_address,
                           distanceKm: o.delivery_distance_km,
                           subtotal: o.subtotal_inr,

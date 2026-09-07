@@ -29,32 +29,35 @@ export type OrderNotifyPayload = {
 };
 
 export function buildWhatsAppOrderMessage(o: OrderNotifyPayload) {
-  const when = o.createdAt ? new Date(o.createdAt) : new Date();
+  const firstName = o.customerName ? o.customerName.trim().split(/\s+/)[0] : "there";
+  const shortId = o.orderId.length > 8 ? o.orderId.slice(0, 8) : o.orderId;
+
+  const itemLines = o.items.map((it) => {
+    const v = it.variant ? ` [${variantLabel(it.variant as any)}]` : "";
+    const pack = it.packItems && it.packItems.length ? `\n   ↳ ${it.packItems.join(", ")}` : "";
+    return `• ${it.name}${v} × ${it.quantity} — ₹${it.lineTotal.toFixed(2)}${pack}`;
+  });
+
   const lines = [
-    `🍽️ *New Order* #${o.orderId.slice(0, 8)}`,
-    `🕒 ${when.toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}`,
+    `Hi ${firstName},`,
     ``,
-    `👤 ${o.customerName}`,
-    `📞 ${o.customerPhone}`,
-    `📍 ${o.address}${o.pincode ? ` — ${o.pincode}` : ""}`,
-    o.landmark ? `🧭 Landmark: ${o.landmark}` : null,
-    o.mapsUrl ? `🗺️ ${o.mapsUrl}` : null,
-    `📏 ${o.distanceKm.toFixed(2)} km from store`,
+    `Thank you for your order with Food on the Move.`,
     ``,
-    `*Items:*`,
-    ...o.items.map((it) => {
-      const v = it.variant ? ` [${variantLabel(it.variant as any)}]` : "";
-      const pack = it.packItems && it.packItems.length ? `\n     ↳ ${it.packItems.join(", ")}` : "";
-      return `• ${it.name}${v} × ${it.quantity} — ₹${it.lineTotal.toFixed(2)}${pack}`;
-    }),
+    `Your order has been confirmed successfully.`,
     ``,
-    `Subtotal: ₹${o.subtotal.toFixed(2)}`,
-    `Delivery: ${o.deliveryFee === 0 ? "FREE" : `₹${o.deliveryFee.toFixed(2)}`}`,
-    `*Total:* ₹${o.total.toFixed(2)}`,
+    `*Order ID:* #${shortId}`,
+    `*Order Total:* ₹${o.total.toFixed(2)}`,
     ``,
-    `*Payment:* ${o.paymentStatus}${o.upiReference ? ` (Ref: ${o.upiReference})` : ""}`,
-  ].filter(Boolean);
-  return (lines as string[]).join("\n");
+    `*Items Ordered:*`,
+    ...itemLines,
+    ``,
+    `We’ll notify you once your order is shipped.`,
+    ``,
+    `Thank you for shopping with us.`,
+    ``,
+    `Team Food on the Move`,
+  ];
+  return lines.join("\n");
 }
 
 export function cleanPhoneNumber(phone: string): string {
@@ -73,9 +76,12 @@ export function customerWhatsappLink(phone: string, message: string) {
 }
 
 export function buildCustomerStatusMessage(customerName: string, orderId: string, status: string) {
-  return `Hi ${customerName}! 👋\nThis is Food On The Move regarding your order #${orderId.slice(0, 8)}.\nStatus: *${status}*\n\nThank you for choosing us! 🍿🍪`;
+  const firstName = customerName ? customerName.trim().split(/\s+/)[0] : "there";
+  const shortId = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
+  return `Hi ${firstName},\n\nThis is Food on the Move regarding your order #${shortId}.\nStatus: *${status}*\n\nThank you for choosing us! 🍿🍪\n\nTeam Food on the Move`;
 }
 
 export function googleMapsLink(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
+

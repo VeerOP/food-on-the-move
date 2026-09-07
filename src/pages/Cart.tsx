@@ -11,7 +11,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery";
 import { CATALOG, variantLabel } from "@/lib/catalog";
-
+import { getAvailableStock } from "@/lib/inventory";
 import { toast } from "sonner";
 
 export default function CartPage() {
@@ -130,7 +130,13 @@ export default function CartPage() {
                           <Minus className="w-4 h-4" />
                         </Button>
                         <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button size="icon" variant="outline" onClick={() => updateQty(item.id, item.quantity + 1)}>
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          onClick={() => updateQty(item.id, item.quantity + 1)}
+                          disabled={item.quantity >= getAvailableStock(item.product_slug)}
+                          title={item.quantity >= getAvailableStock(item.product_slug) ? "Maximum available stock reached" : "Increase quantity"}
+                        >
                           <Plus className="w-4 h-4" />
                         </Button>
                       </div>

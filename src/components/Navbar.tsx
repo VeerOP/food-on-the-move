@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { useIsAdmin } from "@/hooks/use-admin";
+import { OfferPromo } from "@/components/OfferPromo";
 import logo from "@/assets/logo-new.webp";
 
 const navLinks = [
@@ -76,9 +77,10 @@ export function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? "bg-background/90 backdrop-blur-lg border-b border-border/50" : "bg-transparent"
+        isScrolled ? "bg-background/95 backdrop-blur-lg border-b border-border/50 shadow-md" : "bg-background/20 backdrop-blur-sm"
       }`}
     >
+      <OfferPromo />
       <div className="section-container">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}

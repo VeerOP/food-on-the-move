@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback,
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
+import { getAvailableStock, isSoldOut } from "@/lib/inventory";
 import { toast } from "sonner";
 import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
 
@@ -283,6 +284,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const product = CATALOG[slug];
     if (!product) return;
 
+    if (isSoldOut(slug)) {
+      toast.error(`Sorry, ${product.name} is currently sold out.`);
+      return;
+    }
+
+    const available = getAvailableStock(slug);
+
     // Apply MOQ constraint
     let qty = opts.qty ?? 1;
     if (product.moq && qty < product.moq) {
@@ -293,6 +301,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     // Merge same-variant single items
     const existing = items.find((i) => i.product_slug === slug && i.variant === variant && i.price_inr === price);
+    const currentQtyInCart = existing ? existing.quantity : 0;
+
+    if (currentQtyInCart + qty > available) {
+      toast.error(`Sorry, only ${available} ${available === 1 ? "unit is" : "units are"} available for ${product.name}.`);
+      return;
+    }
+
     if (existing) {
       await updateQty(existing.id, existing.quantity + qty);
       showPopup(product, price, qty);
@@ -356,6 +371,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const item = items.find((i) => i.id === id);
     if (!item) return;
     const product = CATALOG[item.product_slug];
+
+    const available = getAvailableStock(item.product_slug);
+    if (qty > item.quantity && qty > available) {
+      toast.error(`Sorry, only ${available} ${available === 1 ? "unit is" : "units are"} available for ${product?.name ?? "this product"}.`);
+      return;
+    }
 
     // Enforce MOQ check
     if (product?.moq && qty < product.moq) {

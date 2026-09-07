@@ -32,6 +32,7 @@ export type CatalogProduct = {
   moq?: number;  // Minimum order quantity if applicable
   isHamper?: boolean;
   isSoldOut?: boolean;
+  stock?: number;
 };
 
 export const CATALOG: Record<string, CatalogProduct> = {
@@ -74,7 +75,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: doubleChocolateCookies,
     price: 310,
     category: "cookies",
-    isSoldOut: true,
+    stock: 1,
   },
   "millet-baklava": {
     slug: "millet-baklava",
@@ -84,6 +85,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     price: 245,
     category: "sweets",
     isSoldOut: true,
+    stock: 0,
   },
   "kunafa": {
     slug: "kunafa",
@@ -93,6 +95,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     price: 245,
     category: "sweets",
     isSoldOut: true,
+    stock: 0,
   },
   "almond-sticks": {
     slug: "almond-sticks",
@@ -101,7 +104,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: almondSticks,
     price: 310,
     category: "sticks",
-    isSoldOut: true,
+    stock: 4,
   },
   "chocochips-sticks": {
     slug: "chocochips-sticks",
@@ -110,7 +113,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: chocochipsSticks,
     price: 310,
     category: "sticks",
-    isSoldOut: true,
+    stock: 3,
   },
   "vanilla-chocolate-cookies": {
     slug: "vanilla-chocolate-cookies",
@@ -120,6 +123,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     price: 310,
     category: "cookies",
     isSoldOut: true,
+    stock: 0,
   },
   "coffee-walnut-cookies": {
     slug: "coffee-walnut-cookies",
@@ -129,6 +133,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     price: 310,
     category: "cookies",
     isSoldOut: true,
+    stock: 0,
   },
   "jowaar-jaggery-cookies": {
     slug: "jowaar-jaggery-cookies",
@@ -137,7 +142,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: jowaarJaggeryCookies,
     price: 310,
     category: "cookies",
-    isSoldOut: true,
+    stock: 2,
   },
   "multigrain-jaggery-cookies": {
     slug: "multigrain-jaggery-cookies",
@@ -146,7 +151,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: multigrainJaggeryCookies,
     price: 310,
     category: "cookies",
-    isSoldOut: true,
+    stock: 2,
   },
   "bajra-jaggery-cookies": {
     slug: "bajra-jaggery-cookies",
@@ -155,7 +160,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: bajraJaggeryCookies,
     price: 310,
     category: "cookies",
-    isSoldOut: true,
+    stock: 6,
   },
   "nachni-jaggery-cookies": {
     slug: "nachni-jaggery-cookies",
@@ -164,7 +169,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: nachniJaggeryCookies,
     price: 310,
     category: "cookies",
-    isSoldOut: true,
+    stock: 4,
   },
   "oats-sticks": {
     slug: "oats-sticks",
@@ -173,7 +178,7 @@ export const CATALOG: Record<string, CatalogProduct> = {
     image: oatsSticks,
     price: 310,
     category: "sticks",
-    isSoldOut: true,
+    stock: 5,
   },
   "fomo-steel-bottle": {
     slug: "fomo-steel-bottle",

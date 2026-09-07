@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CATALOG, CatalogProduct, ProductCategory } from "@/lib/catalog";
+import { useInventory } from "@/lib/inventory";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Eye, Sparkles, ArrowLeft } from "lucide-react";
@@ -11,7 +12,7 @@ import { ShoppingCart, Eye, Sparkles, ArrowLeft } from "lucide-react";
 const CATEGORIES: { id: ProductCategory | "all"; label: string }[] = [
   { id: "all", label: "All Products" },
   { id: "puffs", label: "Puffs" },
-  { id: "cookies", label: "Healthy Cookies" },
+  { id: "cookies", label: "Cookies" },
   { id: "sweets", label: "Sweets & Baklava" },
   { id: "sticks", label: "Sticks & Snacks" },
   { id: "accessories", label: "Accessories" },
@@ -21,6 +22,7 @@ const CATEGORIES: { id: ProductCategory | "all"; label: string }[] = [
 export default function Products() {
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | "all">("all");
   const { addToCart } = useCart();
+  const { isSoldOut } = useInventory();
   const [addingSlug, setAddingSlug] = useState<string | null>(null);
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export default function Products() {
   const handleAddToCart = async (product: CatalogProduct, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isSoldOut(product.slug)) return;
     setAddingSlug(product.slug);
     await addToCart(product.slug, { qty: 1, variant: "single" });
     setAddingSlug(null);
@@ -145,7 +148,7 @@ export default function Products() {
                         </div>
 
                         {/* Sold Out Backdrop and Stamp Overlay */}
-                        {product.isSoldOut && (
+                        {isSoldOut(product.slug) && (
                           <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] z-20 flex items-center justify-center pointer-events-none transition-all">
                             <span className="border-4 border-destructive text-destructive font-display text-2xl font-black uppercase tracking-widest px-4 py-2 rounded-xl rotate-[-12deg] shadow-2xl select-none bg-black/75">
                               Sold Out
@@ -174,7 +177,7 @@ export default function Products() {
 
                     {/* Action buttons */}
                     <div className="p-6 pt-0 flex gap-2">
-                      {product.isSoldOut ? (
+                      {isSoldOut(product.slug) ? (
                         <Button
                           disabled
                           className="flex-1 bg-muted text-muted-foreground text-xs font-bold rounded-xl py-2.5 flex items-center justify-center cursor-not-allowed border border-border/55"
