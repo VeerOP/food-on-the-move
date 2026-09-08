@@ -3,7 +3,15 @@ import { Sparkles, Film } from "lucide-react";
 import heroBg from "@/assets/hero-all-products.webp";
 import logo from "@/assets/logo-new.webp";
 
-const phrases = ["Gluten Free", "Roasted", "Non-Fried", "No Palm Oil", "Zero Trans Fat"];
+const phrases = [
+  "FREE Steel Bottle on ₹1,000+",
+  "FREE Delivery Included",
+  "100% Non-Fried",
+  "Roasted Millets",
+  "No Palm Oil",
+  "Zero Trans Fat",
+  "Gluten Free",
+];
 
 export function HeroSection() {
   return (

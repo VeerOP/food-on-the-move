@@ -1,7 +1,15 @@
 import { motion } from "framer-motion";
 import { Film } from "lucide-react";
 
-const phrases = ["Gluten Free", "Roasted", "Non-Fried", "No Palm Oil", "Zero Trans Fat"];
+const phrases = [
+  "FREE Steel Bottle on ₹1,000+",
+  "FREE Delivery Included",
+  "100% Non-Fried",
+  "Roasted Millets",
+  "No Palm Oil",
+  "Zero Trans Fat",
+  "Gluten Free",
+];
 
 export function MarqueeSection() {
   return (

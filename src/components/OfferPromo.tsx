@@ -35,9 +35,10 @@ export function OfferPromo() {
 
   const marqueeItems = [
     { icon: Gift, text: "FREE FOMO Steel Water Bottle (Worth ₹300) on all orders above ₹1,000!" },
-    { icon: Truck, text: "FREE Delivery across Mumbai & Navi Mumbai on ₹1,000+" },
-    { icon: Flame, text: "100% Non-Fried, Roasted Millet Snacks · Zero Trans Fat" },
-    { icon: Sparkles, text: "Auto-added to cart · Tap to view offer!" },
+    { icon: Sparkles, text: "Special Offer: FREE 750ml Food-Grade Steel Bottle + FREE Delivery on ₹1,000+" },
+    { icon: Gift, text: "Limited Period Gift: Free Stainless Steel Bottle auto-adds in Cart at ₹1,000!" },
+    { icon: Truck, text: "FREE Delivery across Mumbai & Navi Mumbai included on ₹1,000+" },
+    { icon: Flame, text: "100% Roasted, Non-Fried Millet Snacks · Free Bottle on ₹1,000+" },
   ];
 
   const modalContent = (
