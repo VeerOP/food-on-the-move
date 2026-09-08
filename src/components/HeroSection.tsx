@@ -9,7 +9,7 @@ export function HeroSection() {
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden pb-20 md:pb-24 pt-28 sm:pt-32 md:pt-36"
+      className="relative min-h-[calc(100vh+2rem)] flex flex-col items-center justify-center overflow-hidden pb-24 sm:pb-28 pt-36 sm:pt-44 md:pt-48"
     >
       {/* Background Image with Overlay */}
       <div className="absolute inset-0">
@@ -26,7 +26,7 @@ export function HeroSection() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/10 blur-[120px] animate-pulse" />
 
       {/* Content */}
-      <div className="section-container relative z-10 text-center">
+      <div className="section-container relative z-10 text-center mt-4 sm:mt-6">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
