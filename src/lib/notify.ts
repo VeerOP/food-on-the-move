@@ -85,3 +85,40 @@ export function googleMapsLink(lat: number, lng: number) {
   return `https://www.google.com/maps?q=${lat},${lng}`;
 }
 
+export async function sendOrderEmailNotification(payload: {
+  order_id: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email?: string | null;
+  delivery_address: string;
+  landmark?: string | null;
+  pincode?: string | null;
+  delivery_distance_km?: number | null;
+  maps_url?: string | null;
+  subtotal_inr: number;
+  delivery_fee_inr: number;
+  total_inr: number;
+  payment_id?: string | null;
+  items: Array<{
+    product_name: string;
+    quantity: number;
+    price_inr?: number;
+    line_total_inr: number;
+    variant?: string;
+  }>;
+}) {
+  try {
+    const res = await fetch("/api/send-order-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    console.log("Order email notification response:", data);
+    return data;
+  } catch (err) {
+    console.error("Failed to send order email notification:", err);
+    return { success: false, error: (err as any)?.message };
+  }
+}
+

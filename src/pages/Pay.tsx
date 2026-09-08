@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
-import { buildWhatsAppOrderMessage, whatsappLink, googleMapsLink } from "@/lib/notify";
+import { buildWhatsAppOrderMessage, whatsappLink, googleMapsLink, sendOrderEmailNotification } from "@/lib/notify";
 import { toast } from "sonner";
 
 type OrderItem = {
@@ -247,6 +247,29 @@ export default function PayPage() {
             };
             setOrder(updatedOrder);
             handleSendWhatsApp(updatedOrder);
+
+            // Dispatch automated email notification to sevenchakras.india@gmail.com
+            sendOrderEmailNotification({
+              order_id: updatedOrder.id,
+              customer_name: updatedOrder.customer_name,
+              customer_phone: updatedOrder.customer_phone,
+              customer_email: user?.email,
+              delivery_address: updatedOrder.delivery_address,
+              landmark: updatedOrder.landmark,
+              pincode: updatedOrder.pincode,
+              delivery_distance_km: updatedOrder.delivery_distance_km,
+              maps_url: googleMapsLink(updatedOrder.delivery_lat, updatedOrder.delivery_lng),
+              subtotal_inr: updatedOrder.subtotal_inr,
+              delivery_fee_inr: updatedOrder.delivery_fee_inr,
+              total_inr: updatedOrder.total_inr,
+              payment_id: razorpay_payment_id,
+              items: (updatedOrder.order_items || []).map((i) => ({
+                product_name: i.product_name,
+                quantity: i.quantity,
+                line_total_inr: i.line_total_inr,
+                variant: i.variant,
+              })),
+            }).catch((err) => console.error("Auto email dispatch error:", err));
           } catch (err: any) {
             const msg = err.message || "Failed to verify signature";
             setPaymentError(msg);
