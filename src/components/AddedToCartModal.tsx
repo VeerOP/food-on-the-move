@@ -90,9 +90,10 @@ export function AddedToCartModal({
               <button
                 onClick={() => {
                   onClose();
+                  window.scrollTo({ top: 0, left: 0, behavior: "instant" });
                   navigate("/cart");
                 }}
-                className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1 shadow-md shadow-primary/20 transition-transform active:scale-95"
+                className="shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1 shadow-md shadow-primary/20 transition-transform active:scale-95 cursor-pointer"
               >
                 Cart <ArrowRight className="w-3 h-3" />
               </button>

@@ -1,14 +1,17 @@
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Leaf, Zap, Heart, Award, CheckCircle, ChevronLeft, ChevronRight, ShoppingCart, Zap as ZapIcon } from "lucide-react";
+import { ArrowLeft, Leaf, Zap, Heart, Award, CheckCircle, ChevronLeft, ChevronRight, ShoppingCart, Star, Zap as ZapIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { ProductReviewsSection } from "@/components/ProductReviewsSection";
+import { useProductStats } from "@/lib/reviews";
 import { useCart } from "@/hooks/use-cart";
 import { useInventory } from "@/lib/inventory";
 import { CATALOG } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
+import { CartCounter } from "@/components/CartCounter";
 import {
   Carousel,
   CarouselContent,
@@ -384,10 +387,11 @@ export default function ProductDetail() {
         lifestyleCaption: "",
       } : null)) 
     : null;
-  const { addToCart } = useCart();
+  const { addToCart, getItemQuantity } = useCart();
   const { isSoldOut } = useInventory();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
+  const reviewStats = useProductStats(slug || "");
 
   const isCurrentItemSoldOut = slug ? isSoldOut(slug) : false;
   const currentPrice = catalogEntry?.price ?? 0;
@@ -524,7 +528,7 @@ export default function ProductDetail() {
               <span className={`${product.accentColor} font-semibold uppercase tracking-wider text-sm`}>
                 {product.tagline}
               </span>
-              <div className="flex items-center gap-4 flex-wrap mb-6">
+              <div className="flex items-center gap-4 flex-wrap mb-3">
                 <h1 className="font-display text-5xl md:text-6xl lg:text-7xl mt-2 text-foreground">
                   {product.name}
                 </h1>
@@ -534,6 +538,38 @@ export default function ProductDetail() {
                   </span>
                 )}
               </div>
+
+              {/* Real Organic Rating Row */}
+              <div className="flex items-center gap-2 mb-6 flex-wrap">
+                {reviewStats.count > 0 ? (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500">
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star
+                          key={s}
+                          className={`w-3.5 h-3.5 ${
+                            s <= Math.round(reviewStats.average)
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-xs font-black text-foreground">
+                      {reviewStats.average.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({reviewStats.count} {reviewStats.count === 1 ? "review" : "reviews"})
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 text-muted-foreground/40" />
+                    No reviews yet — be the first to rate!
+                  </span>
+                )}
+              </div>
+
               <p className="text-muted-foreground text-lg leading-relaxed mb-8">
                 {product.description}
               </p>
@@ -596,26 +632,49 @@ export default function ProductDetail() {
                   ) : (
                     catalogEntry && (
                       <>
-                        <Button
-                          variant="hero"
-                          size="lg"
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 shadow-lg shadow-primary/25 cursor-pointer"
-                          onClick={handleAdd}
-                          disabled={adding}
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          {adding ? "Adding..." : `Add to Cart — ₹${currentPrice}`}
-                        </Button>
-                        <Button
-                          variant="glow"
-                          size="lg"
-                          className="w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
-                          onClick={handleBuyNow}
-                          disabled={adding}
-                        >
-                          <ZapIcon className="w-4 h-4" />
-                          Buy Now
-                        </Button>
+                        {getItemQuantity(catalogEntry.slug) > 0 ? (
+                          <>
+                            <div className="flex items-center">
+                              <CartCounter
+                                slug={catalogEntry.slug}
+                                size="lg"
+                                className="w-full sm:w-auto min-w-[160px] justify-between h-11"
+                              />
+                            </div>
+                            <Button
+                              variant="glow"
+                              size="lg"
+                              className="w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-primary/25"
+                              onClick={() => navigate("/cart")}
+                            >
+                              <ShoppingCart className="w-4 h-4" />
+                              View in Cart
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              variant="hero"
+                              size="lg"
+                              className="w-full sm:w-auto flex items-center justify-center gap-2 shadow-lg shadow-primary/25 cursor-pointer"
+                              onClick={handleAdd}
+                              disabled={adding}
+                            >
+                              <ShoppingCart className="w-4 h-4" />
+                              {adding ? "Adding..." : `Add to Cart — ₹${currentPrice}`}
+                            </Button>
+                            <Button
+                              variant="glow"
+                              size="lg"
+                              className="w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer"
+                              onClick={handleBuyNow}
+                              disabled={adding}
+                            >
+                              <ZapIcon className="w-4 h-4" />
+                              Buy Now
+                            </Button>
+                          </>
+                        )}
                       </>
                     )
                   )}
@@ -760,6 +819,9 @@ export default function ProductDetail() {
           </div>
         </div>
       </section>
+
+      {/* Customer Reviews Section */}
+      <ProductReviewsSection productSlug={slug || ""} productName={product.name} />
 
       {/* CTA Section */}
       <section className="py-16">

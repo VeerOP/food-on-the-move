@@ -47,20 +47,23 @@ export default function OrdersPage() {
         .from("orders")
         .select("id, customer_name, customer_phone, status, total_inr, subtotal_inr, delivery_fee_inr, delivery_address, delivery_distance_km, upi_reference, created_at, order_items(product_name, quantity, line_total_inr)")
         .eq("user_id", user.id)
+        .neq("status", "pending_payment")
         .order("created_at", { ascending: false });
       if (!error && data) {
         setOrders(
-          data.map((o: any) => ({
-            ...o,
-            total_inr: Number(o.total_inr),
-            subtotal_inr: Number(o.subtotal_inr),
-            delivery_fee_inr: Number(o.delivery_fee_inr),
-            delivery_distance_km: Number(o.delivery_distance_km),
-            order_items: (o.order_items ?? []).map((it: any) => ({
-              ...it,
-              line_total_inr: Number(it.line_total_inr),
-            })),
-          }))
+          data
+            .filter((o: any) => o.status !== "pending_payment")
+            .map((o: any) => ({
+              ...o,
+              total_inr: Number(o.total_inr),
+              subtotal_inr: Number(o.subtotal_inr),
+              delivery_fee_inr: Number(o.delivery_fee_inr),
+              delivery_distance_km: Number(o.delivery_distance_km),
+              order_items: (o.order_items ?? []).map((it: any) => ({
+                ...it,
+                line_total_inr: Number(it.line_total_inr),
+              })),
+            }))
         );
       }
       setLoading(false);
@@ -148,42 +151,35 @@ export default function OrdersPage() {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-3 mt-4 pt-3 border-t border-border/50">
-                  {o.status === "pending_payment" ? (
-                    <Button variant="hero" size="sm" onClick={() => navigate(`/pay/${o.id}`)}>
-                      Complete Payment
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground flex items-center gap-1.5"
-                      onClick={() => {
-                        const isRazorpay = o.upi_reference && o.upi_reference.startsWith("pay_");
-                        const msg = buildWhatsAppOrderMessage({
-                          orderId: o.id,
-                          customerName: o.customer_name || (user?.email ? user.email.split("@")[0] : "Customer"),
-                          customerPhone: o.customer_phone || "",
-                          address: o.delivery_address,
-                          distanceKm: o.delivery_distance_km,
-                          subtotal: o.subtotal_inr,
-                          deliveryFee: o.delivery_fee_inr,
-                          total: o.total_inr,
-                          paymentStatus: o.status,
-                          upiReference: o.upi_reference,
-                          createdAt: o.created_at,
-                          items: o.order_items.map((it) => ({
-                            name: it.product_name,
-                            quantity: it.quantity,
-                            lineTotal: it.line_total_inr,
-                          })),
-                        });
-                        window.open(whatsappLink(msg), "_blank", "noopener");
-                      }}
-                    >
-                      <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
-                      WhatsApp Receipt
-                    </Button>
-                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-[#25D366]/40 hover:bg-[#25D366]/10 text-foreground flex items-center gap-1.5"
+                    onClick={() => {
+                      const msg = buildWhatsAppOrderMessage({
+                        orderId: o.id,
+                        customerName: o.customer_name || (user?.email ? user.email.split("@")[0] : "Customer"),
+                        customerPhone: o.customer_phone || "",
+                        address: o.delivery_address,
+                        distanceKm: o.delivery_distance_km,
+                        subtotal: o.subtotal_inr,
+                        deliveryFee: o.delivery_fee_inr,
+                        total: o.total_inr,
+                        paymentStatus: o.status,
+                        upiReference: o.upi_reference,
+                        createdAt: o.created_at,
+                        items: o.order_items.map((it) => ({
+                          name: it.product_name,
+                          quantity: it.quantity,
+                          lineTotal: it.line_total_inr,
+                        })),
+                      });
+                      window.open(whatsappLink(msg), "_blank", "noopener");
+                    }}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5 text-[#25D366]" />
+                    WhatsApp Receipt
+                  </Button>
                 </div>
               </motion.div>
             ))}

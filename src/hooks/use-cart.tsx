@@ -39,6 +39,10 @@ type CartCtx = {
   removeCoupon: () => void;
   openAddedModal: (info: AddedItemInfo) => void;
   closeAddedModal: () => void;
+  getItemQuantity: (slug: string, variant?: Variant) => number;
+  getItem: (slug: string, variant?: Variant) => CartItem | undefined;
+  incrementQty: (slug: string, variant?: Variant) => Promise<void>;
+  decrementQty: (slug: string, variant?: Variant) => Promise<void>;
 };
 
 const CART_STORAGE_KEY = "fomo_cart_items";
@@ -91,6 +95,10 @@ const Ctx = createContext<CartCtx>({
   removeCoupon: () => {},
   openAddedModal: () => {},
   closeAddedModal: () => {},
+  getItemQuantity: () => 0,
+  getItem: () => undefined,
+  incrementQty: async () => {},
+  decrementQty: async () => {},
 });
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -465,6 +473,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsAddedModalOpen(false);
   };
 
+  const getItem = (slug: string, variant: Variant = "single") => {
+    return items.find((i) => i.product_slug === slug && i.variant === variant);
+  };
+
+  const getItemQuantity = (slug: string, variant: Variant = "single") => {
+    const item = getItem(slug, variant);
+    return item ? item.quantity : 0;
+  };
+
+  const incrementQty = async (slug: string, variant: Variant = "single") => {
+    const item = getItem(slug, variant);
+    if (item) {
+      await updateQty(item.id, item.quantity + 1);
+    } else {
+      await addToCart(slug, { qty: 1, variant });
+    }
+  };
+
+  const decrementQty = async (slug: string, variant: Variant = "single") => {
+    const item = getItem(slug, variant);
+    if (!item) return;
+    const product = CATALOG[slug];
+    const moq = product?.moq ?? 1;
+    if (item.quantity <= moq || item.quantity <= 1) {
+      await removeItem(item.id);
+    } else {
+      await updateQty(item.id, item.quantity - 1);
+    }
+  };
+
   return (
     <Ctx.Provider
       value={{
@@ -483,6 +521,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         removeCoupon,
         openAddedModal,
         closeAddedModal,
+        getItemQuantity,
+        getItem,
+        incrementQty,
+        decrementQty,
       }}
     >
       {children}

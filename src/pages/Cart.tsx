@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
@@ -13,12 +13,17 @@ import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery"
 import { CATALOG, variantLabel } from "@/lib/catalog";
 import { getAvailableStock } from "@/lib/inventory";
 import { toast } from "sonner";
+import { CartCounter } from "@/components/CartCounter";
 
 export default function CartPage() {
   const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, applyCoupon, removeCoupon, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState("");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, []);
 
   const handleClearCart = async () => {
     if (window.confirm("Are you sure you want to empty your entire cart?")) {
@@ -120,25 +125,24 @@ export default function CartPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 mt-3">
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          onClick={() => updateQty(item.id, item.quantity - 1)}
-                          disabled={!!CATALOG[item.product_slug]?.moq && item.quantity <= (CATALOG[item.product_slug]?.moq ?? 0)}
+                      <div className="flex items-center gap-2.5 mt-3 flex-wrap">
+                        <CartCounter
+                          value={item.quantity}
+                          min={CATALOG[item.product_slug]?.moq ?? 1}
+                          max={getAvailableStock(item.product_slug)}
+                          onIncrement={() => updateQty(item.id, item.quantity + 1)}
+                          onDecrement={() => updateQty(item.id, item.quantity - 1)}
+                          onDelete={() => removeItem(item.id)}
+                          size="md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="text-xs text-muted-foreground hover:text-destructive px-3 py-1.5 rounded-full border border-border/80 hover:border-destructive/40 bg-card hover:bg-destructive/5 transition-colors flex items-center gap-1 font-medium cursor-pointer shadow-sm active:scale-95"
                         >
-                          <Minus className="w-4 h-4" />
-                        </Button>
-                        <span className="w-8 text-center font-medium">{item.quantity}</span>
-                        <Button 
-                          size="icon" 
-                          variant="outline" 
-                          onClick={() => updateQty(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= getAvailableStock(item.product_slug)}
-                          title={item.quantity >= getAvailableStock(item.product_slug) ? "Maximum available stock reached" : "Increase quantity"}
-                        >
-                          <Plus className="w-4 h-4" />
-                        </Button>
+                          <Trash2 className="w-3 h-3 text-destructive" />
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>

@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/hooks/use-auth";
 import { CartProvider } from "@/hooks/use-cart";
 import { lazy, Suspense } from "react";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
@@ -36,6 +37,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <HashRouter>
+          <ScrollToTop />
           <AuthProvider>
             <CartProvider>
               <Suspense fallback={<PageLoader />}>

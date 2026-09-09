@@ -10,6 +10,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { useInventory } from "@/lib/inventory";
 import { CATALOG, CatalogProduct } from "@/lib/catalog";
+import { CartCounter } from "@/components/CartCounter";
 
 export default function HampersPage() {
   const { user } = useAuth();
@@ -184,26 +185,13 @@ export default function HampersPage() {
                     
                     {/* Quantity selectors */}
                     {!isSoldOut(product.slug) && (
-                      <div className="flex items-center gap-3">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="w-8 h-8 rounded-lg"
-                          onClick={() => handleDecrement(product.slug, moq)}
-                          disabled={currentQty <= moq}
-                        >
-                          <Minus className="w-3.5 h-3.5" />
-                        </Button>
-                        <span className="w-8 text-center font-semibold text-foreground">{currentQty}</span>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="w-8 h-8 rounded-lg"
-                          onClick={() => handleIncrement(product.slug)}
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                      <CartCounter
+                        value={currentQty}
+                        min={moq}
+                        onIncrement={() => handleIncrement(product.slug)}
+                        onDecrement={() => handleDecrement(product.slug, moq)}
+                        size="sm"
+                      />
                     )}
                   </div>
 

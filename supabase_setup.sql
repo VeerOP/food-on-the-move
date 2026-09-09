@@ -236,3 +236,30 @@ CREATE TRIGGER on_auth_user_created_assign_admin
 INSERT INTO public.user_roles (user_id, role)
 SELECT id, 'admin'::public.app_role FROM auth.users WHERE email = 'veernagda45@gmail.com'
 ON CONFLICT DO NOTHING;
+
+
+-- 6. Product Reviews Table (Organic User Reviews)
+CREATE TABLE IF NOT EXISTS public.product_reviews (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  product_slug TEXT NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  user_name TEXT NOT NULL,
+  rating SMALLINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  title TEXT,
+  comment TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+GRANT SELECT, INSERT ON public.product_reviews TO anon, authenticated;
+GRANT ALL ON public.product_reviews TO service_role;
+ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public can view reviews" ON public.product_reviews;
+CREATE POLICY "Public can view reviews" ON public.product_reviews 
+  FOR SELECT TO PUBLIC USING (true);
+
+DROP POLICY IF EXISTS "Anyone can submit organic reviews" ON public.product_reviews;
+CREATE POLICY "Anyone can submit organic reviews" ON public.product_reviews 
+  FOR INSERT TO PUBLIC WITH CHECK (true);
+
+CREATE INDEX IF NOT EXISTS idx_product_reviews_slug ON public.product_reviews(product_slug, created_at DESC);
+
