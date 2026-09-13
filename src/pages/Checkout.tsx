@@ -235,6 +235,7 @@ export default function CheckoutPage() {
         delivery_distance_km: 0,
         customer_name: name.trim(),
         customer_phone: phone.trim(),
+        customer_email: user.email?.trim() || null,
         payment_method: paymentMethod,
       })
       .select("id")

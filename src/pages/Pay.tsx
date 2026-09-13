@@ -13,6 +13,7 @@ import { toast } from "sonner";
 type OrderItem = {
   product_name: string;
   quantity: number;
+  price_inr?: number;
   line_total_inr: number;
   variant: string;
   pack_items: string[];
@@ -33,6 +34,7 @@ type Order = {
   delivery_distance_km: number;
   customer_name: string;
   customer_phone: string;
+  customer_email?: string | null;
   created_at: string;
   order_items: OrderItem[];
   payment_method: string;
@@ -87,10 +89,12 @@ export default function PayPage() {
           delivery_distance_km,
           customer_name,
           customer_phone,
+          customer_email,
           created_at,
           order_items (
             product_name,
             quantity,
+            price_inr,
             line_total_inr,
             variant,
             pack_items
@@ -113,6 +117,7 @@ export default function PayPage() {
         delivery_lng: Number(data.delivery_lng),
         order_items: (data.order_items ?? []).map((i: any) => ({
           ...i,
+          price_inr: i.price_inr ? Number(i.price_inr) : undefined,
           line_total_inr: Number(i.line_total_inr),
           pack_items: Array.isArray(i.pack_items) ? i.pack_items : [],
         })),
@@ -248,12 +253,25 @@ export default function PayPage() {
             setOrder(updatedOrder);
             handleSendWhatsApp(updatedOrder);
 
-            // Dispatch automated email notification to sevenchakras.india@gmail.com
+            // Determine recipient customer email
+            let customerEmail = updatedOrder.customer_email || user?.email;
+            if (!customerEmail) {
+              try {
+                const { data: authData } = await supabase.auth.getUser();
+                customerEmail = authData?.user?.email;
+              } catch (e) {
+                console.warn("Failed to get user auth email:", e);
+              }
+            }
+
+            // Dispatch automated emails:
+            // 1. Order confirmation from Seven Chakras to customer's email
+            // 2. Order & delivery details notification to Seven Chakras (sevenchakras.india@gmail.com)
             sendOrderEmailNotification({
               order_id: updatedOrder.id,
               customer_name: updatedOrder.customer_name,
               customer_phone: updatedOrder.customer_phone,
-              customer_email: user?.email,
+              customer_email: customerEmail,
               delivery_address: updatedOrder.delivery_address,
               landmark: updatedOrder.landmark,
               pincode: updatedOrder.pincode,
@@ -266,10 +284,18 @@ export default function PayPage() {
               items: (updatedOrder.order_items || []).map((i) => ({
                 product_name: i.product_name,
                 quantity: i.quantity,
+                price_inr: i.price_inr,
                 line_total_inr: i.line_total_inr,
                 variant: i.variant,
+                pack_items: i.pack_items,
               })),
-            }).catch((err) => console.error("Auto email dispatch error:", err));
+            })
+              .then(() => {
+                if (customerEmail) {
+                  toast.success(`Order confirmation sent to ${customerEmail}`);
+                }
+              })
+              .catch((err) => console.error("Auto email dispatch error:", err));
           } catch (err: any) {
             const msg = err.message || "Failed to verify signature";
             setPaymentError(msg);
@@ -351,6 +377,11 @@ export default function PayPage() {
                 <p className="text-muted-foreground text-sm max-w-sm mx-auto">
                   Your order is confirmed via Razorpay (Ref: <span className="font-mono text-xs text-primary">{order.upi_reference}</span>).
                 </p>
+                {(order.customer_email || user?.email) && (
+                  <div className="inline-flex items-center gap-2 mt-2 px-3.5 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    <span>✉️</span> Order confirmation sent to {order.customer_email || user?.email}
+                  </div>
+                )}
               </div>
 
               {/* Order summary card */}

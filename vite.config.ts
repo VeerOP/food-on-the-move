@@ -145,6 +145,28 @@ export default defineConfig(({ mode }) => {
                 res.setHeader("Content-Type", "application/json");
                 res.end(JSON.stringify({ error: err.message || "Verification failed" }));
               }
+            } else if (req.url === "/api/send-order-email" && req.method === "POST") {
+              try {
+                const body = await getJsonBody(req);
+                const mockRes = {
+                  setHeader: (key: string, val: any) => res.setHeader(key, val),
+                  status: (code: number) => {
+                    res.statusCode = code;
+                    return mockRes;
+                  },
+                  json: (data: any) => {
+                    res.setHeader("Content-Type", "application/json");
+                    res.end(JSON.stringify(data));
+                    return mockRes;
+                  },
+                };
+                const { default: emailHandler } = await import("./api/send-order-email");
+                await emailHandler({ method: "POST", body }, mockRes);
+              } catch (err: any) {
+                res.statusCode = 500;
+                res.setHeader("Content-Type", "application/json");
+                res.end(JSON.stringify({ error: err.message || "Failed to process order email" }));
+              }
             } else {
               next();
             }

@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
   delivery_distance_km NUMERIC(6,3) NOT NULL,
   customer_name TEXT NOT NULL,
   customer_phone TEXT NOT NULL,
+  customer_email TEXT,
   payment_method TEXT NOT NULL DEFAULT 'upi',
   upi_reference TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

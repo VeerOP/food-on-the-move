@@ -105,6 +105,7 @@ export async function sendOrderEmailNotification(payload: {
     price_inr?: number;
     line_total_inr: number;
     variant?: string;
+    pack_items?: string[];
   }>;
 }) {
   try {
