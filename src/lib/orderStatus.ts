@@ -7,6 +7,14 @@ export const ORDER_STATUSES = [
   "cancelled",
 ] as const;
 
+export const ADMIN_ORDER_STATUSES = [
+  "paid",
+  "preparing",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+] as const;
+
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {

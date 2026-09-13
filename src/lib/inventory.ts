@@ -134,3 +134,86 @@ export function useInventory() {
     refreshInventory: fetchInventory,
   };
 }
+
+export async function updateProductStock(
+  slug: string,
+  newAvailableStock: number,
+  options?: { resetSold?: boolean }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const current = cachedInventory[slug];
+    const currentSold = options?.resetSold ? 0 : (current?.sold ?? 0);
+    const newInitial = currentSold + Math.max(0, newAvailableStock);
+
+    const { error } = await supabase
+      .from("product_inventory" as any)
+      .upsert(
+        {
+          product_slug: slug,
+          initial_stock: newInitial,
+          sold_stock: currentSold,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "product_slug" }
+      );
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    cachedInventory = {
+      ...cachedInventory,
+      [slug]: {
+        initial: newInitial,
+        sold: currentSold,
+        available: Math.max(0, newAvailableStock),
+      },
+    };
+    notifyListeners();
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update stock" };
+  }
+}
+
+export async function setProductStockDirect(
+  slug: string,
+  initialStock: number,
+  soldStock: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const validInitial = Math.max(0, initialStock);
+    const validSold = Math.max(0, soldStock);
+
+    const { error } = await supabase
+      .from("product_inventory" as any)
+      .upsert(
+        {
+          product_slug: slug,
+          initial_stock: validInitial,
+          sold_stock: validSold,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "product_slug" }
+      );
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    const available = Math.max(0, validInitial - validSold);
+    cachedInventory = {
+      ...cachedInventory,
+      [slug]: {
+        initial: validInitial,
+        sold: validSold,
+        available,
+      },
+    };
+    notifyListeners();
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update stock" };
+  }
+}
+

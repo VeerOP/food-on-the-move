@@ -37,7 +37,7 @@ export default async function handler(req: any, res: any) {
     });
 
     const storeEmail = process.env.ADMIN_EMAIL || process.env.STORE_EMAIL || "sevenchakras.india@gmail.com";
-    const brandName = "Seven Chakras";
+    const brandName = "Seven Chakras India";
     const subBrand = "Food On The Move";
     const supportPhone = "+91 9152856405";
 
@@ -108,7 +108,7 @@ export default async function handler(req: any, res: any) {
                 Hi ${customer_name || "there"},
               </p>
               <p style="margin: 0 0 14px 0; font-size: 14px; color: #4b5563; line-height: 1.6;">
-                Thank you for choosing <strong>${subBrand}</strong> by <strong>${brandName}</strong>! Your payment has been received and your order is confirmed. We are packing your freshly prepared snacks with love and care.
+                Thank you for choosing <strong>${subBrand}</strong> by <strong>${brandName}</strong>! Your payment has been received and your order is confirmed. We are packing your snacks with love and care.
               </p>
             </div>
 
@@ -186,8 +186,7 @@ export default async function handler(req: any, res: any) {
 
           <!-- Footer -->
           <div style="background: #f9fafb; padding: 20px 24px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb;">
-            <strong>${subBrand}</strong> • A Registered Trademark of <strong>${brandName}</strong><br>
-            Mumbai, India • Thank you for supporting our journey!
+            <strong>${subBrand}</strong> • A Registered Trademark of <strong>${brandName}</strong>
           </div>
         </div>
       </body>
@@ -237,7 +236,7 @@ export default async function handler(req: any, res: any) {
                   <td style="padding: 5px 0; color: #6b7280;">Phone Number:</td>
                   <td style="padding: 5px 0; font-weight: 600; color: #111827;">
                     <a href="tel:${customer_phone}" style="color: #ea580c; text-decoration: none;">${customer_phone || "Not provided"}</a>
-                    ${customer_phone ? `&nbsp;(<a href="https://wa.me/91${customer_phone.replace(/\\D/g, '').slice(-10)}" target="_blank" style="color: #15803d; text-decoration: none; font-weight: 600;">Chat on WhatsApp</a>)` : ""}
+                    ${customer_phone ? `&nbsp;(<a href="https://wa.me/91${customer_phone.replace(/\D/g, '').slice(-10)}" target="_blank" style="color: #15803d; text-decoration: none; font-weight: 600;">Chat on WhatsApp</a>)` : ""}
                   </td>
                 </tr>
                 <tr>
