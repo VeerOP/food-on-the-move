@@ -10,7 +10,7 @@ import { ProductCardSnackible } from "@/components/ProductCardSnackible";
 const CATEGORIES: { id: ProductCategory | "all"; label: string }[] = [
   { id: "all", label: "All Products" },
   { id: "puffs", label: "Roasted Puffs" },
-  { id: "cookies", label: "Healthy Cookies" },
+  { id: "cookies", label: "Cookies" },
   { id: "sticks", label: "Crunchy Sticks" },
   { id: "sweets", label: "Sweets & Baklava" },
   { id: "accessories", label: "Accessories" },

@@ -53,7 +53,7 @@ type AdminOrder = {
 const CATEGORY_LABELS: Record<string, string> = {
   all: "All Categories",
   puffs: "Roasted Puffs",
-  cookies: "Healthy Cookies",
+  cookies: "Cookies",
   sticks: "Crunchy Sticks",
   sweets: "Sweets & Baklava",
   accessories: "Accessories",
