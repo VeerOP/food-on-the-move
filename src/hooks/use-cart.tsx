@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
 import { getAvailableStock, isSoldOut } from "@/lib/inventory";
+import { isMumbaiAddress } from "@/lib/delivery";
 import { toast } from "sonner";
 import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
 
@@ -35,7 +36,7 @@ type CartCtx = {
   removeItem: (id: string) => Promise<void>;
   clearCart: () => Promise<void>;
   refresh: () => Promise<void>;
-  applyCoupon: (code: string) => boolean;
+  applyCoupon: (code: string, context?: { pincode?: string; address?: string }) => boolean;
   removeCoupon: () => void;
   openAddedModal: (info: AddedItemInfo) => void;
   closeAddedModal: () => void;
@@ -107,7 +108,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>(() => loadLocalCart());
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState<string>(() => {
-    return localStorage.getItem(COUPON_STORAGE_KEY) || "";
+    const saved = localStorage.getItem(COUPON_STORAGE_KEY) || "";
+    if (saved.toUpperCase() === "DELIVERYONUS") {
+      // Do not auto-apply DELIVERYONUS; clear stale stored value
+      localStorage.removeItem(COUPON_STORAGE_KEY);
+      return "";
+    }
+    return saved;
   });
   const [addedItem, setAddedItem] = useState<AddedItemInfo | null>(null);
   const [isAddedModalOpen, setIsAddedModalOpen] = useState(false);
@@ -427,6 +434,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // clearCart is ONLY called after verified payment completion in Pay.tsx
   const clearCart = async () => {
     updateItems([]);
+    setCouponCode("");
+    localStorage.removeItem(COUPON_STORAGE_KEY);
     if (user) {
       const { error } = await supabase
         .from("cart_items")
@@ -440,7 +449,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const subtotal = items.reduce((s, i) => s + i.quantity * i.price_inr, 0);
   const discount = couponCode.toUpperCase() === "FOMO20" ? Math.round(subtotal * 0.20) : 0;
 
-  const applyCoupon = (code: string) => {
+  const applyCoupon = (code: string, context?: { pincode?: string; address?: string }) => {
     const upper = (code || "").trim().toUpperCase();
     if (upper === "FOMO20") {
       setCouponCode("FOMO20");
@@ -449,8 +458,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return true;
     }
     if (upper === "DELIVERYONUS") {
+      const hasLocation = Boolean(context?.pincode?.trim() || context?.address?.trim());
+      const inMumbai = hasLocation ? isMumbaiAddress(context?.pincode || "", context?.address || "") : null;
+
+      if (inMumbai === true) {
+        if (subtotal >= 1000) {
+          toast.error("DELIVERYONUS is only applicable for orders under ₹1,000 in Mumbai. Orders of ₹1,000+ already qualify for free delivery!");
+          return false;
+        }
+      } else if (inMumbai === false) {
+        if (subtotal >= 2000) {
+          toast.error("DELIVERYONUS is only applicable for orders under ₹2,000 outside Mumbai. Orders of ₹2,000+ already qualify for free delivery!");
+          return false;
+        }
+      } else {
+        // Location not yet specified (e.g. on Cart page)
+        if (subtotal >= 2000) {
+          toast.error("DELIVERYONUS is only applicable for orders under ₹1,000 in Mumbai and under ₹2,000 outside Mumbai. Your order already qualifies for free delivery!");
+          return false;
+        }
+      }
+
       setCouponCode("DELIVERYONUS");
-      localStorage.setItem(COUPON_STORAGE_KEY, "DELIVERYONUS");
+      // Do not store in localStorage so it never auto-applies on future sessions
+      localStorage.removeItem(COUPON_STORAGE_KEY);
       toast.success("Coupon DELIVERYONUS applied! Free ₹0 delivery.");
       return true;
     }

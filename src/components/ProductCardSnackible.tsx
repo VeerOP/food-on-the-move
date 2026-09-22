@@ -21,11 +21,12 @@ export function ProductCardSnackible({
   badgeText = "BESTSELLER",
 }: ProductCardSnackibleProps) {
   const { addToCart, getItemQuantity } = useCart();
-  const { isSoldOut } = useInventory();
+  const { isSoldOut, getMRP } = useInventory();
   const [isAdding, setIsAdding] = useState(false);
   const stats = useProductStats(product.slug);
 
   const soldOut = isSoldOut(product.slug);
+  const currentPrice = getMRP ? getMRP(product.slug) : product.price;
   const currentQtyInCart = getItemQuantity(product.slug, "single");
 
   const handleAddToCart = async (e: React.MouseEvent) => {
@@ -58,15 +59,6 @@ export function ProductCardSnackible({
             <div className="absolute top-0 left-0 z-10 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-black text-[9px] sm:text-[11px] uppercase tracking-wider px-2 sm:px-2.5 py-1 rounded-br-xl shadow-md flex items-center gap-1">
               <Tag className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-amber-950" />
               <span>{badgeText}</span>
-            </div>
-          )}
-
-          {/* Sold Out Overlay */}
-          {soldOut && (
-            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-20 flex items-center justify-center pointer-events-none">
-              <span className="border-2 border-destructive text-destructive font-display text-base sm:text-xl font-black uppercase tracking-widest px-3 py-1.5 rounded-lg rotate-[-10deg] shadow-xl bg-black/85">
-                Sold Out
-              </span>
             </div>
           )}
 
@@ -119,7 +111,7 @@ export function ProductCardSnackible({
           {/* Price Row */}
           <div className="mt-1 mb-3 flex items-baseline gap-2">
             <span className="text-base sm:text-lg font-extrabold text-foreground font-display">
-              ₹ {product.price}
+              ₹ {currentPrice}
             </span>
           </div>
         </div>

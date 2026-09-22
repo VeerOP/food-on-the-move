@@ -36,10 +36,11 @@ export type SavedAddress = {
 };
 
 export default function CheckoutPage() {
-  const { items, subtotal, discount, couponCode } = useCart();
+  const { items, subtotal, discount, couponCode, applyCoupon, removeCoupon } = useCart();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
+  const [checkoutCouponInput, setCheckoutCouponInput] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -157,7 +158,10 @@ export default function CheckoutPage() {
   const isMumbai = isMumbaiAddress(cleanPin, address);
   const deliveryThreshold = isMumbai ? 1000 : 2000;
   const rawDeliveryFee = computeDeliveryFee(subtotal, cleanPin, address);
-  const isFreeDeliveryCoupon = couponCode.toUpperCase() === "DELIVERYONUS";
+  // DELIVERYONUS is strictly applicable ONLY for orders under 1000 inside Mumbai, or under 2000 outside Mumbai
+  const isFreeDeliveryCoupon =
+    couponCode.toUpperCase() === "DELIVERYONUS" &&
+    ((isMumbai && subtotal < 1000) || (!isMumbai && subtotal < 2000));
   const deliveryFee = isFreeDeliveryCoupon ? 0 : rawDeliveryFee;
   const total = subtotal - discount + deliveryFee;
   const amountToFree = isFreeDeliveryCoupon ? 0 : Math.max(0, deliveryThreshold - subtotal);
@@ -575,6 +579,52 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+            {/* Coupon Code Section */}
+            <div className="border-t border-border/50 pt-3 pb-1">
+              {couponCode ? (
+                <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-xl p-2.5 text-xs">
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-primary">{couponCode} applied</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {couponCode.toUpperCase() === "DELIVERYONUS"
+                        ? isFreeDeliveryCoupon
+                          ? "Free ₹0 Delivery"
+                          : `Standard Free Delivery already unlocked (Orders ₹${deliveryThreshold}+)`
+                        : "20% discount on total puffs"}
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:bg-destructive/10 h-7 px-2 rounded-lg text-xs"
+                    onClick={removeCoupon}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Coupon Code"
+                    value={checkoutCouponInput}
+                    onChange={(e) => setCheckoutCouponInput(e.target.value)}
+                    className="rounded-xl h-9 text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const ok = applyCoupon(checkoutCouponInput, { pincode: cleanPin, address });
+                      if (ok) setCheckoutCouponInput("");
+                    }}
+                    className="rounded-xl px-3 h-9 text-xs shrink-0"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <div className="border-t border-border/50 pt-3 space-y-1.5 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -593,6 +643,10 @@ export default function CheckoutPage() {
               {isFreeDeliveryCoupon ? (
                 <p className="text-[11px] text-primary font-medium">
                   ✓ Free ₹0 delivery applied with coupon DELIVERYONUS
+                </p>
+              ) : deliveryFee === 0 ? (
+                <p className="text-[11px] text-primary font-medium">
+                  ✓ Free delivery unlocked (Order over ₹{deliveryThreshold})
                 </p>
               ) : amountToFree > 0 ? (
                 <p className="text-[11px] text-primary/80">

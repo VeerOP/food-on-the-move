@@ -15,7 +15,7 @@ import { CartCounter } from "@/components/CartCounter";
 export default function HampersPage() {
   const { user } = useAuth();
   const { addToCart } = useCart();
-  const { isSoldOut } = useInventory();
+  const { isSoldOut, getMRP } = useInventory();
   const navigate = useNavigate();
 
   // Get only hampers from catalog
@@ -124,7 +124,7 @@ export default function HampersPage() {
           {hampers.map((product, idx) => {
             const moq = product.moq ?? 1;
             const currentQty = quantities[product.slug] ?? moq;
-            const itemPrice = product.price;
+            const itemPrice = getMRP ? getMRP(product.slug) : product.price;
             const totalPrice = itemPrice * currentQty;
 
             return (
@@ -145,13 +145,6 @@ export default function HampersPage() {
 
                   {/* Image wrapper */}
                   <div className="relative h-64 mb-6 rounded-2xl bg-muted/30 overflow-hidden flex items-center justify-center">
-                    {isSoldOut(product.slug) && (
-                      <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] z-20 flex items-center justify-center pointer-events-none transition-all">
-                        <span className="border-4 border-destructive text-destructive font-display text-2xl font-black uppercase tracking-widest px-4 py-2 rounded-xl rotate-[-12deg] shadow-2xl select-none bg-black/75">
-                          Sold Out
-                        </span>
-                      </div>
-                    )}
                     <img
                       src={product.image}
                       alt={product.name}

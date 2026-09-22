@@ -236,9 +236,23 @@ export const VARIANT_META: Record<Variant, { label: string; short: string; count
   free:   { label: "Free Gift", short: "Free", count: 1, price: 0 },
 };
 
+let dynamicPriceGetter: ((slug: string) => number) | null = null;
+
+export function registerDynamicPriceGetter(getter: (slug: string) => number) {
+  dynamicPriceGetter = getter;
+}
+
+export function getProductPrice(slug: string): number {
+  if (dynamicPriceGetter) {
+    const dynamic = dynamicPriceGetter(slug);
+    if (typeof dynamic === "number" && dynamic > 0) return dynamic;
+  }
+  return CATALOG[slug]?.price ?? 0;
+}
+
 export function variantPrice(variant: Variant, productSlug: string): number {
   if (variant === "free") return 0;
-  const basePrice = CATALOG[productSlug]?.price ?? 0;
+  const basePrice = getProductPrice(productSlug);
   if (variant === "single") return basePrice;
   
   const discountRatio = 150 / 180; // ~16.67% discount

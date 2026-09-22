@@ -388,13 +388,13 @@ export default function ProductDetail() {
       } : null)) 
     : null;
   const { addToCart, getItemQuantity } = useCart();
-  const { isSoldOut } = useInventory();
+  const { isSoldOut, getMRP } = useInventory();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
   const reviewStats = useProductStats(slug || "");
 
   const isCurrentItemSoldOut = slug ? isSoldOut(slug) : false;
-  const currentPrice = catalogEntry?.price ?? 0;
+  const currentPrice = slug ? getMRP(slug) : (catalogEntry?.price ?? 0);
 
   const handleAdd = async () => {
     if (!catalogEntry || isCurrentItemSoldOut) return;
@@ -477,13 +477,6 @@ export default function ProductDetail() {
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${product.color} rounded-full blur-[100px] opacity-60`} />
               <div className="relative z-10 w-full max-w-md">
-                {isCurrentItemSoldOut && (
-                  <div className="absolute inset-0 bg-black/25 backdrop-blur-[1px] z-30 flex items-center justify-center rounded-3xl overflow-hidden pointer-events-none transition-all">
-                    <span className="border-4 border-destructive text-destructive font-display text-3xl font-black uppercase tracking-widest px-6 py-3 rounded-2xl rotate-[-12deg] shadow-2xl select-none bg-black/75">
-                      Sold Out
-                    </span>
-                  </div>
-                )}
                 <Carousel className="w-full">
                   <CarouselContent>
                     {product.images.map((image, index) => (

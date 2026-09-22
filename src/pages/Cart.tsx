@@ -33,7 +33,7 @@ export default function CartPage() {
   };
 
   const rawDeliveryFee = computeDeliveryFee(subtotal);
-  const isFreeDeliveryCoupon = couponCode.toUpperCase() === "DELIVERYONUS";
+  const isFreeDeliveryCoupon = couponCode.toUpperCase() === "DELIVERYONUS" && subtotal < 2000;
   const deliveryFee = isFreeDeliveryCoupon ? 0 : rawDeliveryFee;
   const total = subtotal - discount + deliveryFee;
   const amountToFree = isFreeDeliveryCoupon ? 0 : Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);

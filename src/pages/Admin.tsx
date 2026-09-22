@@ -74,9 +74,11 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
 
   // Inventory State
-  const { inventory, refreshInventory } = useInventory();
+  const { inventory, refreshInventory, getMRP, updateMRP } = useInventory();
   const [stockEdits, setStockEdits] = useState<Record<string, number>>({});
+  const [mrpEdits, setMrpEdits] = useState<Record<string, number>>({});
   const [savingSlug, setSavingSlug] = useState<string | null>(null);
+  const [savingMrpSlug, setSavingMrpSlug] = useState<string | null>(null);
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryCategory, setInventoryCategory] = useState<string>("all");
   const [inventoryStatus, setInventoryStatus] = useState<"all" | "in_stock" | "low_stock" | "sold_out">("all");
@@ -216,6 +218,25 @@ export default function AdminPage() {
   const handleMarkSoldOut = async (slug: string) => {
     setStockEdits((prev) => ({ ...prev, [slug]: 0 }));
     await handleSaveStock(slug, 0);
+  };
+
+  const handleSaveMRP = async (slug: string, targetMRP: number) => {
+    setSavingMrpSlug(slug);
+    const prod = CATALOG[slug];
+    const newPrice = Math.max(1, Math.round(targetMRP));
+
+    const res = await updateMRP(slug, newPrice);
+    if (res.success) {
+      toast.success(`MRP updated for ${prod?.name || slug}: ₹${newPrice}`);
+      setMrpEdits((prev) => {
+        const next = { ...prev };
+        delete next[slug];
+        return next;
+      });
+    } else {
+      toast.error(res.error || "Failed to update MRP in Supabase");
+    }
+    setSavingMrpSlug(null);
   };
 
   const handleRefreshInventory = async () => {
@@ -580,6 +601,11 @@ export default function AdminPage() {
                   const currentValue = stockEdits[product.slug] !== undefined ? stockEdits[product.slug] : available;
                   const isDirty = stockEdits[product.slug] !== undefined && stockEdits[product.slug] !== available;
 
+                  const currentEffectiveMrp = getMRP(product.slug);
+                  const currentMrp = mrpEdits[product.slug] !== undefined ? mrpEdits[product.slug] : currentEffectiveMrp;
+                  const isMrpDirty = mrpEdits[product.slug] !== undefined && mrpEdits[product.slug] !== currentEffectiveMrp;
+                  const isSavingMrp = savingMrpSlug === product.slug;
+
                   return (
                     <motion.div
                       key={product.slug}
@@ -604,13 +630,6 @@ export default function AdminPage() {
                               className="w-full h-full object-contain hover:scale-110 transition-transform duration-300"
                               loading="lazy"
                             />
-                            {isOut && (
-                              <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
-                                <span className="text-[9px] font-black uppercase tracking-wider text-destructive bg-black/80 px-1.5 py-0.5 rounded border border-destructive/50">
-                                  Out
-                                </span>
-                              </div>
-                            )}
                           </div>
 
                           <div className="space-y-1 flex-1">
@@ -623,8 +642,44 @@ export default function AdminPage() {
 
                             <p className="text-xs text-muted-foreground">{product.tagline}</p>
 
-                            <div className="flex items-center gap-3 text-xs pt-1 flex-wrap">
-                              <span className="font-semibold text-foreground">₹{product.price} MRP</span>
+                            <div className="flex items-center gap-2.5 text-xs pt-1.5 flex-wrap">
+                              {/* Inline MRP edit control */}
+                              <div className="flex items-center bg-background border border-border/80 rounded-xl px-2.5 py-1 shadow-xs">
+                                <span className="text-xs text-muted-foreground font-semibold mr-1">MRP: ₹</span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={currentMrp}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10);
+                                    setMrpEdits((prev) => ({
+                                      ...prev,
+                                      [product.slug]: isNaN(val) ? 0 : Math.max(0, val),
+                                    }));
+                                  }}
+                                  disabled={isSavingMrp}
+                                  className="w-16 text-center font-mono font-bold text-xs bg-transparent outline-none border-none text-foreground"
+                                  title="Edit product MRP"
+                                />
+                              </div>
+
+                              {isMrpDirty && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={isSavingMrp}
+                                  onClick={() => handleSaveMRP(product.slug, currentMrp)}
+                                  className="h-7 px-2.5 rounded-lg text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs cursor-pointer gap-1"
+                                >
+                                  {isSavingMrp ? (
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="w-3 h-3" />
+                                  )}
+                                  Save MRP
+                                </Button>
+                              )}
+
                               <span className="text-muted-foreground/60">•</span>
                               <span className="text-muted-foreground font-mono text-[11px]">slug: {product.slug}</span>
                             </div>
