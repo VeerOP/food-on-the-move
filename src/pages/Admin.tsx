@@ -20,6 +20,7 @@ import {
   XCircle,
   Package,
   RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,8 +34,9 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { ADMIN_ORDER_STATUSES, STATUS_LABEL, STATUS_STYLE, OrderStatus } from "@/lib/orderStatus";
-import { CATALOG } from "@/lib/catalog";
+import { CATALOG, CatalogProduct } from "@/lib/catalog";
 import { useInventory, updateProductStock } from "@/lib/inventory";
+import { ManagePicturesModal } from "@/components/ManagePicturesModal";
 import { cn } from "@/lib/utils";
 
 type AdminOrder = {
@@ -74,7 +76,7 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
 
   // Inventory State
-  const { inventory, refreshInventory, getMRP, updateMRP } = useInventory();
+  const { inventory, refreshInventory, getMRP, updateMRP, getImages, getMainImage } = useInventory();
   const [stockEdits, setStockEdits] = useState<Record<string, number>>({});
   const [mrpEdits, setMrpEdits] = useState<Record<string, number>>({});
   const [savingSlug, setSavingSlug] = useState<string | null>(null);
@@ -83,6 +85,7 @@ export default function AdminPage() {
   const [inventoryCategory, setInventoryCategory] = useState<string>("all");
   const [inventoryStatus, setInventoryStatus] = useState<"all" | "in_stock" | "low_stock" | "sold_out">("all");
   const [isRefreshingInventory, setIsRefreshingInventory] = useState(false);
+  const [selectedProductForImages, setSelectedProductForImages] = useState<CatalogProduct | null>(null);
 
   useEffect(() => {
     if (authLoading || adminLoading) return;
@@ -606,6 +609,10 @@ export default function AdminPage() {
                   const isMrpDirty = mrpEdits[product.slug] !== undefined && mrpEdits[product.slug] !== currentEffectiveMrp;
                   const isSavingMrp = savingMrpSlug === product.slug;
 
+                  const displayImage = (getMainImage ? getMainImage(product.slug) : null) || product.image;
+                  const productImages = getImages ? getImages(product.slug) : [product.image];
+                  const hasCustomPhotos = Array.isArray(inventory[product.slug]?.images) && (inventory[product.slug]?.images?.length ?? 0) > 0;
+
                   return (
                     <motion.div
                       key={product.slug}
@@ -623,13 +630,23 @@ export default function AdminPage() {
                       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
                         {/* Left: Product Info */}
                         <div className="flex items-start sm:items-center gap-3.5 min-w-0 flex-1">
-                          <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-background border border-border/60 shrink-0 p-1 flex items-center justify-center">
+                          <div
+                            onClick={() => setSelectedProductForImages(product)}
+                            className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-background border border-border/60 shrink-0 p-1 flex items-center justify-center cursor-pointer group/img"
+                            title="Click to add or remove product pictures"
+                          >
                             <img
-                              src={product.image}
+                              src={displayImage}
                               alt={product.name}
-                              className="w-full h-full object-contain hover:scale-110 transition-transform duration-300"
+                              className="w-full h-full object-contain group-hover/img:scale-110 transition-transform duration-300"
                               loading="lazy"
                             />
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                              <ImageIcon className="w-5 h-5 text-white" />
+                            </div>
+                            <span className="absolute bottom-1 right-1 bg-black/70 text-white font-mono text-[9px] px-1.5 py-0.5 rounded backdrop-blur-xs">
+                              {productImages.length}
+                            </span>
                           </div>
 
                           <div className="space-y-1 flex-1">
@@ -643,6 +660,22 @@ export default function AdminPage() {
                             <p className="text-xs text-muted-foreground">{product.tagline}</p>
 
                             <div className="flex items-center gap-2.5 text-xs pt-1.5 flex-wrap">
+                              {/* Manage Pictures Button */}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedProductForImages(product)}
+                                className="h-7 px-2.5 rounded-lg text-xs font-semibold border-border/80 hover:bg-primary/10 hover:text-primary shadow-xs cursor-pointer gap-1.5"
+                                title="Add or remove product pictures"
+                              >
+                                <ImageIcon className="w-3.5 h-3.5 text-primary" />
+                                <span>Pictures ({productImages.length})</span>
+                                {hasCustomPhotos && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" title="Custom photos active" />
+                                )}
+                              </Button>
+
                               {/* Inline MRP edit control */}
                               <div className="flex items-center bg-background border border-border/80 rounded-xl px-2.5 py-1 shadow-xs">
                                 <span className="text-xs text-muted-foreground font-semibold mr-1">MRP: ₹</span>
@@ -870,6 +903,16 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      {selectedProductForImages && (
+        <ManagePicturesModal
+          product={selectedProductForImages}
+          isOpen={!!selectedProductForImages}
+          onClose={() => setSelectedProductForImages(null)}
+          customImages={inventory[selectedProductForImages.slug]?.images}
+        />
+      )}
+
       <Footer />
     </div>
   );

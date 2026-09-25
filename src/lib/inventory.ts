@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { CATALOG, registerDynamicPriceGetter } from "@/lib/catalog";
+import {
+  CATALOG,
+  DEFAULT_PRODUCT_IMAGES,
+  registerDynamicPriceGetter,
+  registerDynamicImagesGetter,
+} from "@/lib/catalog";
 
 export const INITIAL_STOCK: Record<string, number> = {
   "oats-sticks": 5,
@@ -17,10 +22,15 @@ export const INITIAL_STOCK: Record<string, number> = {
   "coffee-walnut-cookies": 0,
 };
 
-type InventoryState = Record<
-  string,
-  { initial: number; sold: number; available: number; price_inr?: number | null }
->;
+export type ProductInventoryEntry = {
+  initial: number;
+  sold: number;
+  available: number;
+  price_inr?: number | null;
+  images?: string[] | null;
+};
+
+type InventoryState = Record<string, ProductInventoryEntry>;
 
 // Global cache for immediate synchronous lookups
 let cachedInventory: InventoryState = Object.entries(INITIAL_STOCK).reduce((acc, [slug, initial]) => {
@@ -29,6 +39,7 @@ let cachedInventory: InventoryState = Object.entries(INITIAL_STOCK).reduce((acc,
     sold: 0,
     available: initial,
     price_inr: null,
+    images: null,
   };
   return acc;
 }, {} as InventoryState);
@@ -47,11 +58,20 @@ registerDynamicPriceGetter((slug: string) => {
     : (CATALOG[slug]?.price ?? 0);
 });
 
+// Register dynamic images provider with catalog.ts
+registerDynamicImagesGetter((slug: string) => {
+  const custom = cachedInventory[slug]?.images;
+  if (Array.isArray(custom) && custom.length > 0) {
+    return custom;
+  }
+  return undefined;
+});
+
 export async function fetchInventory() {
   try {
     const { data, error } = await supabase
       .from("product_inventory" as any)
-      .select("product_slug, initial_stock, sold_stock, price_inr");
+      .select("product_slug, initial_stock, sold_stock, price_inr, images");
 
     if (!error && data && Array.isArray(data)) {
       const next: InventoryState = { ...cachedInventory };
@@ -59,11 +79,16 @@ export async function fetchInventory() {
         const initial = Number(row.initial_stock ?? INITIAL_STOCK[row.product_slug] ?? 0);
         const sold = Number(row.sold_stock ?? 0);
         const price_inr = row.price_inr != null ? Number(row.price_inr) : null;
+        let images: string[] | null = null;
+        if (Array.isArray(row.images)) {
+          images = row.images.filter((img: any) => typeof img === "string" && img.trim().length > 0);
+        }
         next[row.product_slug] = {
           initial,
           sold,
           available: Math.max(0, initial - sold),
           price_inr,
+          images,
         };
       });
       cachedInventory = next;
@@ -122,6 +147,19 @@ export function getProductMRP(slug: string): number {
   return CATALOG[slug]?.price ?? 0;
 }
 
+export function getProductImages(slug: string): string[] {
+  const custom = cachedInventory[slug]?.images;
+  if (Array.isArray(custom) && custom.length > 0) {
+    return custom;
+  }
+  return DEFAULT_PRODUCT_IMAGES[slug] || (CATALOG[slug]?.image ? [CATALOG[slug].image] : []);
+}
+
+export function getProductMainImage(slug: string): string {
+  const imgs = getProductImages(slug);
+  return imgs[0] || CATALOG[slug]?.image || "";
+}
+
 export function useInventory() {
   const [inventory, setInventory] = useState<InventoryState>(cachedInventory);
 
@@ -155,31 +193,92 @@ export function useInventory() {
     return getProductMRP(slug);
   };
 
+  const getImages = (slug: string): string[] => {
+    const custom = inventory[slug]?.images;
+    if (Array.isArray(custom) && custom.length > 0) {
+      return custom;
+    }
+    return DEFAULT_PRODUCT_IMAGES[slug] || (CATALOG[slug]?.image ? [CATALOG[slug].image] : []);
+  };
+
+  const getMainImage = (slug: string): string => {
+    const imgs = getImages(slug);
+    return imgs[0] || CATALOG[slug]?.image || "";
+  };
+
   return {
     inventory,
     isSoldOut: checkIsSoldOut,
     getStock,
     getMRP,
+    getImages,
+    getMainImage,
     updateMRP: updateProductMRP,
+    updateImages: updateProductImages,
     refreshInventory: fetchInventory,
   };
 }
 
-export async function updateProductStock(
+export async function uploadProductImage(
   slug: string,
-  newAvailableStock: number,
-  options?: { resetSold?: boolean }
+  file: File
+): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const fileExt = file.name.split(".").pop() || "jpg";
+    const cleanExt = fileExt.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    const filePath = `${slug}/${timestamp}-${random}.${cleanExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("product-images")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      return { success: false, error: uploadError.message };
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("product-images")
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrlData.publicUrl };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to upload image" };
+  }
+}
+
+export async function deleteProductImageFromStorage(imageUrl: string): Promise<void> {
+  try {
+    const bucketMarker = "/product-images/";
+    const idx = imageUrl.indexOf(bucketMarker);
+    if (idx !== -1) {
+      const filePath = decodeURIComponent(imageUrl.substring(idx + bucketMarker.length));
+      await supabase.storage.from("product-images").remove([filePath]);
+    }
+  } catch (err) {
+    console.warn("Storage deletion warning:", err);
+  }
+}
+
+export async function updateProductImages(
+  slug: string,
+  images: string[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const current = cachedInventory[slug];
-    const currentSold = options?.resetSold ? 0 : (current?.sold ?? 0);
-    const newInitial = currentSold + Math.max(0, newAvailableStock);
+    const initial = current?.initial ?? (CATALOG[slug]?.stock ?? 50);
+    const sold = current?.sold ?? 0;
     const currentPrice = current?.price_inr ?? null;
 
     const upsertPayload: any = {
       product_slug: slug,
-      initial_stock: newInitial,
-      sold_stock: currentSold,
+      initial_stock: initial,
+      sold_stock: sold,
+      images,
       updated_at: new Date().toISOString(),
     };
     if (currentPrice !== null && currentPrice !== undefined) {
@@ -197,10 +296,61 @@ export async function updateProductStock(
     cachedInventory = {
       ...cachedInventory,
       [slug]: {
+        initial,
+        sold,
+        available: Math.max(0, initial - sold),
+        price_inr: currentPrice,
+        images,
+      },
+    };
+    notifyListeners();
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Failed to update pictures" };
+  }
+}
+
+export async function updateProductStock(
+  slug: string,
+  newAvailableStock: number,
+  options?: { resetSold?: boolean }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const current = cachedInventory[slug];
+    const currentSold = options?.resetSold ? 0 : (current?.sold ?? 0);
+    const newInitial = currentSold + Math.max(0, newAvailableStock);
+    const currentPrice = current?.price_inr ?? null;
+    const currentImages = current?.images ?? null;
+
+    const upsertPayload: any = {
+      product_slug: slug,
+      initial_stock: newInitial,
+      sold_stock: currentSold,
+      updated_at: new Date().toISOString(),
+    };
+    if (currentPrice !== null && currentPrice !== undefined) {
+      upsertPayload.price_inr = currentPrice;
+    }
+    if (currentImages !== null && currentImages !== undefined) {
+      upsertPayload.images = currentImages;
+    }
+
+    const { error } = await supabase
+      .from("product_inventory" as any)
+      .upsert(upsertPayload, { onConflict: "product_slug" });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    cachedInventory = {
+      ...cachedInventory,
+      [slug]: {
         initial: newInitial,
         sold: currentSold,
         available: Math.max(0, newAvailableStock),
         price_inr: currentPrice,
+        images: currentImages,
       },
     };
     notifyListeners();
@@ -219,19 +369,22 @@ export async function updateProductMRP(
     const current = cachedInventory[slug];
     const initial = current?.initial ?? (CATALOG[slug]?.stock ?? 50);
     const sold = current?.sold ?? 0;
+    const currentImages = current?.images ?? null;
+
+    const upsertPayload: any = {
+      product_slug: slug,
+      initial_stock: initial,
+      sold_stock: sold,
+      price_inr: validMRP,
+      updated_at: new Date().toISOString(),
+    };
+    if (currentImages !== null && currentImages !== undefined) {
+      upsertPayload.images = currentImages;
+    }
 
     const { error } = await supabase
       .from("product_inventory" as any)
-      .upsert(
-        {
-          product_slug: slug,
-          initial_stock: initial,
-          sold_stock: sold,
-          price_inr: validMRP,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "product_slug" }
-      );
+      .upsert(upsertPayload, { onConflict: "product_slug" });
 
     if (error) {
       return { success: false, error: error.message };
@@ -244,6 +397,7 @@ export async function updateProductMRP(
         sold,
         available: Math.max(0, initial - sold),
         price_inr: validMRP,
+        images: currentImages,
       },
     };
     notifyListeners();
@@ -263,6 +417,7 @@ export async function setProductStockDirect(
     const validSold = Math.max(0, soldStock);
     const current = cachedInventory[slug];
     const currentPrice = current?.price_inr ?? null;
+    const currentImages = current?.images ?? null;
 
     const upsertPayload: any = {
       product_slug: slug,
@@ -272,6 +427,9 @@ export async function setProductStockDirect(
     };
     if (currentPrice !== null && currentPrice !== undefined) {
       upsertPayload.price_inr = currentPrice;
+    }
+    if (currentImages !== null && currentImages !== undefined) {
+      upsertPayload.images = currentImages;
     }
 
     const { error } = await supabase
@@ -290,6 +448,7 @@ export async function setProductStockDirect(
         sold: validSold,
         available,
         price_inr: currentPrice,
+        images: currentImages,
       },
     };
     notifyListeners();
@@ -298,4 +457,3 @@ export async function setProductStockDirect(
     return { success: false, error: err?.message || "Failed to update stock" };
   }
 }
-

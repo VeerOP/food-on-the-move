@@ -217,6 +217,33 @@ export type Database = {
         }
         Relationships: []
       }
+      product_inventory: {
+        Row: {
+          product_slug: string
+          initial_stock: number
+          sold_stock: number
+          price_inr: number | null
+          images: Json | null
+          updated_at: string
+        }
+        Insert: {
+          product_slug: string
+          initial_stock?: number
+          sold_stock?: number
+          price_inr?: number | null
+          images?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          product_slug?: string
+          initial_stock?: number
+          sold_stock?: number
+          price_inr?: number | null
+          images?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

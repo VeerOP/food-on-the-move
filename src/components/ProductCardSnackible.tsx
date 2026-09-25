@@ -21,13 +21,14 @@ export function ProductCardSnackible({
   badgeText = "BESTSELLER",
 }: ProductCardSnackibleProps) {
   const { addToCart, getItemQuantity } = useCart();
-  const { isSoldOut, getMRP } = useInventory();
+  const { isSoldOut, getMRP, getMainImage } = useInventory();
   const [isAdding, setIsAdding] = useState(false);
   const stats = useProductStats(product.slug);
 
   const soldOut = isSoldOut(product.slug);
   const currentPrice = getMRP ? getMRP(product.slug) : product.price;
   const currentQtyInCart = getItemQuantity(product.slug, "single");
+  const displayImage = (getMainImage ? getMainImage(product.slug) : null) || product.image;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,7 +65,7 @@ export function ProductCardSnackible({
 
           {/* Product Image */}
           <img
-            src={product.image}
+            src={displayImage}
             alt={product.name}
             loading="lazy"
             decoding="async"

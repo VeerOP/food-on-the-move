@@ -15,7 +15,7 @@ import { CartCounter } from "@/components/CartCounter";
 export default function HampersPage() {
   const { user } = useAuth();
   const { addToCart } = useCart();
-  const { isSoldOut, getMRP } = useInventory();
+  const { isSoldOut, getMRP, getMainImage } = useInventory();
   const navigate = useNavigate();
 
   // Get only hampers from catalog
@@ -110,7 +110,7 @@ export default function HampersPage() {
             <div>
               <h3 className="font-display text-xl md:text-2xl text-foreground">Special Offer</h3>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Orders above <span className="font-semibold text-foreground">₹1000</span> get <span className="text-primary font-semibold">FREE delivery</span> + a free <span className="text-primary font-semibold">FOMO Steel Water Bottle</span>!
+                Orders above <span className="font-semibold text-foreground">₹1000</span> get <span className="text-primary font-semibold">FREE delivery</span> across Mumbai & Navi Mumbai!
               </p>
             </div>
           </div>
@@ -126,6 +126,7 @@ export default function HampersPage() {
             const currentQty = quantities[product.slug] ?? moq;
             const itemPrice = getMRP ? getMRP(product.slug) : product.price;
             const totalPrice = itemPrice * currentQty;
+            const displayImage = (getMainImage ? getMainImage(product.slug) : null) || product.image;
 
             return (
               <motion.div
@@ -146,7 +147,7 @@ export default function HampersPage() {
                   {/* Image wrapper */}
                   <div className="relative h-64 mb-6 rounded-2xl bg-muted/30 overflow-hidden flex items-center justify-center">
                     <img
-                      src={product.image}
+                      src={displayImage}
                       alt={product.name}
                       className="h-full w-auto object-contain p-4 group-hover:scale-105 transition-transform duration-500"
                     />

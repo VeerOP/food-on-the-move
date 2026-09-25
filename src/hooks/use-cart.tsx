@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { CATALOG, VARIANT_META, Variant, variantPrice } from "@/lib/catalog";
+import { CATALOG, VARIANT_META, Variant, variantPrice, getProductMainImage } from "@/lib/catalog";
 import { getAvailableStock, isSoldOut } from "@/lib/inventory";
 import { isMumbaiAddress } from "@/lib/delivery";
 import { toast } from "sonner";
 import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
+
+export const FREE_BOTTLE_OFFER_ACTIVE = false;
 
 export type CartItem = {
   id: string;
@@ -203,6 +205,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (loading) return;
 
     const syncFreeGift = async () => {
+      // Inactive free bottle offer: clean up any free bottle items from cart
+      if (!FREE_BOTTLE_OFFER_ACTIVE) {
+        const freeItems = items.filter(
+          (i) => i.product_slug === "fomo-steel-bottle" && (i.variant === "free" || i.price_inr === 0)
+        );
+        if (freeItems.length > 0) {
+          if (user) {
+            for (const it of freeItems) {
+              await supabase.from("cart_items").delete().eq("id", it.id);
+            }
+          }
+          updateItems((prev) =>
+            prev.filter(
+              (i) => !(i.product_slug === "fomo-steel-bottle" && (i.variant === "free" || i.price_inr === 0))
+            )
+          );
+        }
+        return;
+      }
+
       // Legacy cleanup: delete any stale "single" variant steel bottle with price 0
       const legacyItem = items.find((i) => i.product_slug === "fomo-steel-bottle" && i.variant === "single" && i.price_inr === 0);
       if (legacyItem) {
@@ -323,9 +345,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    const mainImg = getProductMainImage(slug) || product.image;
+
     if (existing) {
       await updateQty(existing.id, existing.quantity + qty);
-      showPopup(product, price, qty);
+      showPopup({ ...product, image: mainImg }, price, qty);
       return;
     }
 
@@ -334,7 +358,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         user_id: user.id,
         product_slug: slug,
         product_name: product.name,
-        product_image: product.image,
+        product_image: mainImg,
         price_inr: price,
         quantity: qty,
         variant,
@@ -350,7 +374,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         id: data?.id ?? `cart-${Date.now()}`,
         product_slug: slug,
         product_name: product.name,
-        product_image: product.image,
+        product_image: mainImg,
         price_inr: price,
         quantity: qty,
         variant,
@@ -358,14 +382,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
 
       updateItems((prev) => [...prev, newItem]);
-      showPopup(product, price, qty);
+      showPopup({ ...product, image: mainImg }, price, qty);
     } else {
       // Guest mode: save immediately to local storage
       const newItem: CartItem = {
         id: `guest-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
         product_slug: slug,
         product_name: product.name,
-        product_image: product.image,
+        product_image: mainImg,
         price_inr: price,
         quantity: qty,
         variant,
@@ -373,7 +397,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
 
       updateItems((prev) => [...prev, newItem]);
-      showPopup(product, price, qty);
+      showPopup({ ...product, image: mainImg }, price, qty);
     }
   };
 

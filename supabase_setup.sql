@@ -264,3 +264,60 @@ CREATE POLICY "Anyone can submit organic reviews" ON public.product_reviews
 
 CREATE INDEX IF NOT EXISTS idx_product_reviews_slug ON public.product_reviews(product_slug, created_at DESC);
 
+
+-- 7. Product Inventory & Storage Bucket Configuration
+CREATE TABLE IF NOT EXISTS public.product_inventory (
+  product_slug TEXT PRIMARY KEY,
+  initial_stock INTEGER NOT NULL DEFAULT 0,
+  sold_stock INTEGER NOT NULL DEFAULT 0,
+  price_inr NUMERIC(10,2),
+  images JSONB DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.product_inventory ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read product inventory" ON public.product_inventory;
+CREATE POLICY "Public read product inventory" ON public.product_inventory
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow update product inventory" ON public.product_inventory;
+CREATE POLICY "Allow update product inventory" ON public.product_inventory
+  FOR ALL USING (true);
+
+-- Product Images Storage Bucket
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Public can view product images' AND tablename = 'objects' AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Public can view product images" ON storage.objects
+      FOR SELECT USING (bucket_id = 'product-images');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can upload product images' AND tablename = 'objects' AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Authenticated users can upload product images" ON storage.objects
+      FOR INSERT WITH CHECK (bucket_id = 'product-images');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can update product images' AND tablename = 'objects' AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Authenticated users can update product images" ON storage.objects
+      FOR UPDATE USING (bucket_id = 'product-images');
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE policyname = 'Authenticated users can delete product images' AND tablename = 'objects' AND schemaname = 'storage'
+  ) THEN
+    CREATE POLICY "Authenticated users can delete product images" ON storage.objects
+      FOR DELETE USING (bucket_id = 'product-images');
+  END IF;
+END $$;
+

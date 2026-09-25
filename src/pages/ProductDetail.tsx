@@ -388,13 +388,14 @@ export default function ProductDetail() {
       } : null)) 
     : null;
   const { addToCart, getItemQuantity } = useCart();
-  const { isSoldOut, getMRP } = useInventory();
+  const { isSoldOut, getMRP, getImages } = useInventory();
   const navigate = useNavigate();
   const [adding, setAdding] = useState(false);
   const reviewStats = useProductStats(slug || "");
 
   const isCurrentItemSoldOut = slug ? isSoldOut(slug) : false;
   const currentPrice = slug ? getMRP(slug) : (catalogEntry?.price ?? 0);
+  const productImages = slug ? getImages(slug) : (product?.images ?? (catalogEntry?.image ? [catalogEntry.image] : []));
 
   const handleAdd = async () => {
     if (!catalogEntry || isCurrentItemSoldOut) return;
@@ -479,7 +480,7 @@ export default function ProductDetail() {
               <div className="relative z-10 w-full max-w-md">
                 <Carousel className="w-full">
                   <CarouselContent>
-                    {product.images.map((image, index) => (
+                    {productImages.map((image, index) => (
                       <CarouselItem key={index}>
                         <motion.div
                           className="flex items-center justify-center p-4"
@@ -502,7 +503,7 @@ export default function ProductDetail() {
                 </Carousel>
                 {/* Slide indicators */}
                 <div className="flex justify-center gap-2 mt-4">
-                  {product.images.map((_, index) => (
+                  {productImages.map((_, index) => (
                     <div
                       key={index}
                       className="w-2 h-2 rounded-full bg-muted-foreground/30"

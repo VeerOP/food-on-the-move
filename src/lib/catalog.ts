@@ -20,6 +20,11 @@ import doubleChocolateCookies from "@/assets/double-chocolate-cookies.webp";
 import nachniJaggeryCookies from "@/assets/nachni-jaggery-cookies.webp";
 import oatsSticks from "@/assets/oats-sticks.webp";
 
+import productCornBack from "@/assets/product-woh-corn-thi-back.webp";
+import productJowarBack from "@/assets/product-yeh-jowaari-back.webp";
+import productQuinoaBack from "@/assets/product-quinoa-se-quinoa-back.webp";
+import productMultigrainBack from "@/assets/product-hum-saath-back.webp";
+
 export type ProductCategory = "puffs" | "sweets" | "sticks" | "cookies" | "accessories" | "hampers";
 
 export type CatalogProduct = {
@@ -268,5 +273,47 @@ export function variantPrice(variant: Variant, productSlug: string): number {
 export function variantLabel(variant: Variant): string {
   if (CATALOG[variant]?.isHamper) return "Hamper";
   return VARIANT_META[variant]?.label ?? "Hamper";
+}
+
+export const DEFAULT_PRODUCT_IMAGES: Record<string, string[]> = {
+  "woh-corn-thi": [productCorn, productCornBack],
+  "yeh-jowaari-hai-deewani": [productJowar, productJowarBack],
+  "quinoa-se-quinoa-tak": [productQuinoa, productQuinoaBack],
+  "hum-saath-saath-hai": [productMultigrain, productMultigrainBack],
+  "double-chocolate-cookies": [doubleChocolateCookies],
+  "millet-baklava": [milletBaklava],
+  "kunafa": [kunafa],
+  "almond-sticks": [almondSticks],
+  "chocochips-sticks": [chocochipsSticks],
+  "vanilla-chocolate-cookies": [vanillaChocolateCookies],
+  "coffee-walnut-cookies": [coffeeWalnutCookies],
+  "jowaar-jaggery-cookies": [jowaarJaggeryCookies],
+  "multigrain-jaggery-cookies": [multigrainJaggeryCookies],
+  "bajra-jaggery-cookies": [bajraJaggeryCookies],
+  "nachni-jaggery-cookies": [nachniJaggeryCookies],
+  "oats-sticks": [oatsSticks],
+  "fomo-steel-bottle": [fomoBottle],
+  "hamper-classic": [hamperClassic],
+  "hamper-fitness": [hamperFitness],
+  "hamper-party": [hamperParty],
+};
+
+let dynamicImagesGetter: ((slug: string) => string[] | undefined) | null = null;
+
+export function registerDynamicImagesGetter(getter: (slug: string) => string[] | undefined) {
+  dynamicImagesGetter = getter;
+}
+
+export function getProductImages(slug: string): string[] {
+  if (dynamicImagesGetter) {
+    const dynamic = dynamicImagesGetter(slug);
+    if (Array.isArray(dynamic) && dynamic.length > 0) return dynamic;
+  }
+  return DEFAULT_PRODUCT_IMAGES[slug] || (CATALOG[slug]?.image ? [CATALOG[slug].image] : []);
+}
+
+export function getProductMainImage(slug: string): string {
+  const list = getProductImages(slug);
+  return list[0] || CATALOG[slug]?.image || "";
 }
 
