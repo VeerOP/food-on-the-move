@@ -4,6 +4,7 @@ import heroBg from "@/assets/hero-all-products.webp";
 import logo from "@/assets/logo-new.webp";
 
 const phrases = [
+  "FREE Bottle on ₹1,200+",
   "FREE Delivery on ₹1,000+",
   "100% Non-Fried",
   "Roasted Millets",

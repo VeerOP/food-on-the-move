@@ -11,6 +11,7 @@ import { ContactSection } from "@/components/ContactSection";
 import { Footer } from "@/components/Footer";
 import { CinematicLoader } from "@/components/CinematicLoader";
 import { CurtainReveal } from "@/components/CurtainReveal";
+import { FreeBottleOfferPopup } from "@/components/FreeBottleOfferPopup";
 
 const Index = () => {
   const location = useLocation();
@@ -40,6 +41,7 @@ const Index = () => {
     <main className="min-h-screen bg-background overflow-x-hidden">
       <CinematicLoader />
       <CurtainReveal />
+      <FreeBottleOfferPopup />
       <Navbar />
       <HeroSection />
       <OurRangeSection />

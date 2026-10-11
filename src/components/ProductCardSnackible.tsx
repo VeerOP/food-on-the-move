@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Star, ShoppingCart, Tag } from "lucide-react";
 import { CatalogProduct } from "@/lib/catalog";
@@ -20,6 +20,7 @@ export function ProductCardSnackible({
   isBestseller = true,
   badgeText = "BESTSELLER",
 }: ProductCardSnackibleProps) {
+  const navigate = useNavigate();
   const { addToCart, getItemQuantity } = useCart();
   const { isSoldOut, getMRP, getMainImage } = useInventory();
   const [isAdding, setIsAdding] = useState(false);
@@ -81,29 +82,40 @@ export function ProductCardSnackible({
               {product.name}
             </h3>
 
-            {/* Organic Rating Row */}
-            <div className="flex items-center gap-1.5 mt-1.5 mb-2.5 min-h-[18px]">
+            {/* Standout Organic Rating Row - Clicking jumps directly to reviews */}
+            <div 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate(`/product/${product.slug}#product-reviews`);
+              }}
+              title="Click to view customer reviews"
+              className="inline-flex items-center gap-1.5 mt-1.5 mb-2.5 min-h-[22px] px-2.5 py-0.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 transition-all cursor-pointer group/rating shadow-xs active:scale-95"
+            >
               {stats.count > 0 ? (
                 <>
                   <div className="flex items-center text-amber-400">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <Star
                         key={s}
-                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
+                        className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform group-hover/rating:scale-110 ${
                           s <= Math.round(stats.average)
-                            ? "fill-amber-400 text-amber-400"
+                            ? "fill-amber-400 text-amber-400 drop-shadow-[0_1px_2px_rgba(251,191,36,0.4)]"
                             : "fill-muted text-muted/50"
                         }`}
                       />
                     ))}
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground ml-0.5">
+                  <span className="text-[10px] sm:text-xs font-black text-foreground">
+                    {stats.average.toFixed(1)}
+                  </span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-muted-foreground group-hover/rating:text-primary transition-colors">
                     ({stats.count})
                   </span>
                 </>
               ) : (
-                <span className="text-[10px] sm:text-xs font-medium text-muted-foreground/60 flex items-center gap-1">
-                  <Star className="w-3 h-3 text-muted-foreground/40" /> No reviews yet
+                <span className="text-[10px] sm:text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 group-hover/rating:underline">
+                  <Star className="w-3 h-3 fill-amber-400/50 text-amber-400" /> Rate product
                 </span>
               )}
             </div>

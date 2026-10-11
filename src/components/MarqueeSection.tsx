@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Film } from "lucide-react";
 
 const phrases = [
+  "FREE Bottle on ₹1,200+",
   "FREE Delivery on ₹1,000+",
   "100% Non-Fried",
   "Roasted Millets",

@@ -63,7 +63,7 @@ export function ProductReviewsSection({ productSlug, productName }: ProductRevie
   };
 
   return (
-    <section className="py-16 bg-gradient-to-b from-card/30 via-background to-card/20 border-t border-border/40">
+    <section id="product-reviews" className="scroll-mt-28 py-16 bg-gradient-to-b from-card/30 via-background to-card/20 border-t border-border/40">
       <div className="section-container max-w-5xl">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10 pb-6 border-b border-border/40">

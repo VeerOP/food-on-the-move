@@ -7,7 +7,8 @@ import { isMumbaiAddress } from "@/lib/delivery";
 import { toast } from "sonner";
 import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
 
-export const FREE_BOTTLE_OFFER_ACTIVE = false;
+export const FREE_BOTTLE_OFFER_ACTIVE = true;
+export const FREE_BOTTLE_THRESHOLD = 1200;
 
 export type CartItem = {
   id: string;
@@ -241,22 +242,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .reduce((sum, item) => sum + item.quantity * item.price_inr, 0);
 
       // Reset user rejection if they drop below threshold
-      if (baseSubtotal < 1000) {
+      if (baseSubtotal < FREE_BOTTLE_THRESHOLD) {
         localStorage.removeItem("rejected_free_gift");
       }
 
       const rejected = localStorage.getItem("rejected_free_gift") === "true";
-      const shouldHaveGift = baseSubtotal >= 1000 && !couponCode && !rejected;
+      const shouldHaveGift = baseSubtotal >= FREE_BOTTLE_THRESHOLD && !rejected;
 
       if (shouldHaveGift && !fomoItem) {
         const product = CATALOG["fomo-steel-bottle"];
         if (!product) return;
 
+        const mainImg = getProductMainImage("fomo-steel-bottle") || product.image;
+
         const freeItem: CartItem = {
           id: user ? `temp-fomo-${Date.now()}` : `guest-fomo-${Date.now()}`,
           product_slug: "fomo-steel-bottle",
           product_name: product.name,
-          product_image: product.image,
+          product_image: mainImg,
           price_inr: 0,
           quantity: 1,
           variant: "free",
@@ -268,7 +271,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             user_id: user.id,
             product_slug: "fomo-steel-bottle",
             product_name: product.name,
-            product_image: product.image,
+            product_image: mainImg,
             price_inr: 0,
             quantity: 1,
             variant: "free",
@@ -278,6 +281,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
 
         updateItems((prev) => [...prev.filter((i) => i.variant !== "free"), freeItem]);
+        toast.success("🎁 Free Food On The Move Bottle added to your cart!");
       } else if (!shouldHaveGift && fomoItem) {
         if (user) {
           await supabase

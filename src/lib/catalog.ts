@@ -187,12 +187,12 @@ export const CATALOG: Record<string, CatalogProduct> = {
   },
   "fomo-steel-bottle": {
     slug: "fomo-steel-bottle",
-    name: "FOMO Steel Bottle",
-    tagline: "Premium Stainless Steel Bottle",
+    name: "Food On The Move Bottle",
+    tagline: "Premium Food-Grade Stainless Steel Bottle (750ml)",
     image: fomoBottle,
     price: 300,
     category: "accessories",
-    isSoldOut: true,
+    stock: 100,
   },
   "hamper-classic": {
     slug: "hamper-classic",

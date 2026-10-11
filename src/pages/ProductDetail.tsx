@@ -426,10 +426,28 @@ export default function ProductDetail() {
     }
   };
 
-  // Scroll to top when page loads
+  const scrollToReviews = () => {
+    const el = document.getElementById("product-reviews");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.history.replaceState(null, "", "#product-reviews");
+    }
+  };
+
+  // Scroll to reviews if hash is present, or top when page loads
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, [slug]);
+    if (location.hash === "#product-reviews" || location.hash === "#reviews") {
+      const timer = setTimeout(() => {
+        const el = document.getElementById("product-reviews");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      window.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [slug, location.hash]);
 
   if (!product) {
     return (
@@ -533,35 +551,57 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {/* Real Organic Rating Row */}
-              <div className="flex items-center gap-2 mb-6 flex-wrap">
-                {reviewStats.count > 0 ? (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500">
-                    <div className="flex items-center">
-                      {[1, 2, 3, 4, 5].map((s) => (
-                        <Star
-                          key={s}
-                          className={`w-3.5 h-3.5 ${
-                            s <= Math.round(reviewStats.average)
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-muted-foreground/30"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs font-black text-foreground">
-                      {reviewStats.average.toFixed(1)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      ({reviewStats.count} {reviewStats.count === 1 ? "review" : "reviews"})
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-muted-foreground/40" />
-                    No reviews yet — be the first to rate!
-                  </span>
-                )}
+              {/* Standout Interactive Rating Button - Clicking scrolls directly to reviews */}
+              <div className="flex items-center gap-3 mb-6 flex-wrap">
+                <button
+                  type="button"
+                  onClick={scrollToReviews}
+                  title="Click to view all reviews"
+                  className="group inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 hover:from-amber-500/25 hover:via-amber-400/20 hover:to-amber-500/25 border-2 border-amber-500/40 hover:border-amber-500/70 shadow-md shadow-amber-500/10 hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300 active:scale-95 cursor-pointer text-left"
+                >
+                  {reviewStats.count > 0 ? (
+                    <>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform duration-200 group-hover:scale-110 ${
+                              s <= Math.round(reviewStats.average)
+                                ? "fill-amber-400 text-amber-400 drop-shadow-[0_2px_4px_rgba(251,191,36,0.6)]"
+                                : "text-amber-400/30 fill-amber-400/10"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm sm:text-base font-black text-foreground font-display ml-1">
+                        {reviewStats.average.toFixed(1)}
+                      </span>
+                      <span className="text-xs sm:text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors flex items-center gap-1">
+                        ({reviewStats.count} {reviewStats.count === 1 ? "review" : "reviews"})
+                        <span className="hidden sm:inline text-primary font-bold ml-1 group-hover:translate-y-0.5 transition-transform">
+                          ↓ View Reviews
+                        </span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className="w-4 h-4 text-amber-400 fill-amber-400/30 group-hover:fill-amber-400 transition-all duration-200 group-hover:scale-110"
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs sm:text-sm font-bold text-foreground">
+                        No reviews yet — be the first to rate!
+                      </span>
+                      <span className="text-xs text-primary font-bold group-hover:translate-y-0.5 transition-transform">
+                        ↓ Write Review
+                      </span>
+                    </>
+                  )}
+                </button>
               </div>
 
               <p className="text-muted-foreground text-lg leading-relaxed mb-8">

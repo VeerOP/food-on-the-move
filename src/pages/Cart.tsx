@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Package, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { useCart } from "@/hooks/use-cart";
+import { useCart, FREE_BOTTLE_THRESHOLD } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { computeDeliveryFee, FREE_DELIVERY_THRESHOLD_INR } from "@/lib/delivery";
 import { CATALOG, variantLabel } from "@/lib/catalog";
@@ -194,6 +194,23 @@ export default function CartPage() {
                       : `You have FREE delivery in Mumbai! Add ₹${(2000 - subtotal).toFixed(2)} more for FREE PAN India delivery.`}
                   </p>
                 ) : null}
+
+                {/* Free Bottle Perk Status */}
+                <div className="pt-2">
+                  {subtotal >= FREE_BOTTLE_THRESHOLD ? (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 font-semibold">
+                      <Gift className="w-4 h-4 text-primary shrink-0" />
+                      <span>🎉 Free Food On The Move Bottle (Worth ₹300) included in your cart!</span>
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2 text-xs text-foreground">
+                      <Gift className="w-4 h-4 text-primary shrink-0" />
+                      <span>
+                        Add <strong>₹{(FREE_BOTTLE_THRESHOLD - subtotal).toFixed(0)}</strong> more to get a <strong>FREE Food On The Move Bottle</strong>!
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Coupon Code Section */}

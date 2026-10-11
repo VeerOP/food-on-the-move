@@ -20,6 +20,7 @@ export const INITIAL_STOCK: Record<string, number> = {
   "millet-baklava": 0,
   "vanilla-chocolate-cookies": 0,
   "coffee-walnut-cookies": 0,
+  "fomo-steel-bottle": 50,
 };
 
 export type ProductInventoryEntry = {
