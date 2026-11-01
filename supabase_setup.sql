@@ -337,9 +337,13 @@ CREATE TABLE IF NOT EXISTS public.coupons (
   min_order_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   description TEXT,
+  allow_free_bottle BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ensure column exists if table was created previously
+ALTER TABLE public.coupons ADD COLUMN IF NOT EXISTS allow_free_bottle BOOLEAN NOT NULL DEFAULT true;
 
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 

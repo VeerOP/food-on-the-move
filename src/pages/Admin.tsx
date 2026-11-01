@@ -122,6 +122,7 @@ export default function AdminPage() {
     isSupabaseOnline,
     isFreeBottleActive,
     toggleFreeBottleOffer,
+    toggleCouponBottleAllowance,
   } = useCoupons();
 
   const [couponSearch, setCouponSearch] = useState("");
@@ -129,6 +130,7 @@ export default function AdminPage() {
   const [copiedCouponCode, setCopiedCouponCode] = useState<string | null>(null);
   const [quotaEdits, setQuotaEdits] = useState<Record<string, number>>({});
   const [savingQuotaId, setSavingQuotaId] = useState<string | null>(null);
+  const [savingBottleId, setSavingBottleId] = useState<string | null>(null);
   const [isRefreshingCoupons, setIsRefreshingCoupons] = useState(false);
   const [isTogglingFreeBottle, setIsTogglingFreeBottle] = useState(false);
 
@@ -152,6 +154,21 @@ export default function AdminPage() {
     }
   };
 
+  const handleToggleCouponBottleAllowance = async (coupon: Coupon, nextAllowed: boolean) => {
+    setSavingBottleId(coupon.id);
+    const res = await toggleCouponBottleAllowance(coupon.id, nextAllowed);
+    setSavingBottleId(null);
+    if (res.success) {
+      toast.success(
+        nextAllowed
+          ? `Coupon ${coupon.code} now allows Free Bottle on ₹1,200+ (after discount)!`
+          : `Coupon ${coupon.code} now excludes Free Bottle.`
+      );
+    } else {
+      toast.error(res.error || "Failed to update Free Bottle setting for coupon");
+    }
+  };
+
   // Add Coupon Dialog
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newCouponCode, setNewCouponCode] = useState("");
@@ -162,6 +179,7 @@ export default function AdminPage() {
   const [newMinOrder, setNewMinOrder] = useState<number>(0);
   const [newDescription, setNewDescription] = useState("");
   const [newIsActive, setNewIsActive] = useState(true);
+  const [newAllowFreeBottle, setNewAllowFreeBottle] = useState(true);
   const [isSubmittingNewCoupon, setIsSubmittingNewCoupon] = useState(false);
 
   // Edit Coupon Dialog
@@ -174,6 +192,7 @@ export default function AdminPage() {
   const [editMinOrder, setEditMinOrder] = useState<number>(0);
   const [editDescription, setEditDescription] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
+  const [editAllowFreeBottle, setEditAllowFreeBottle] = useState(true);
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   // Delete Confirm Dialog
@@ -368,6 +387,7 @@ export default function AdminPage() {
     setNewMinOrder(0);
     setNewDescription("25% OFF on your entire order");
     setNewIsActive(true);
+    setNewAllowFreeBottle(true);
     setIsAddModalOpen(true);
   };
 
@@ -386,6 +406,7 @@ export default function AdminPage() {
       min_order_amount: newMinOrder,
       description: newDescription,
       is_active: newIsActive,
+      allow_free_bottle: newAllowFreeBottle,
     });
     setIsSubmittingNewCoupon(false);
 
@@ -407,6 +428,7 @@ export default function AdminPage() {
     setEditMinOrder(coupon.min_order_amount);
     setEditDescription(coupon.description || "");
     setEditIsActive(coupon.is_active);
+    setEditAllowFreeBottle(coupon.allow_free_bottle !== false);
   };
 
   const handleSaveEditCoupon = async () => {
@@ -425,6 +447,7 @@ export default function AdminPage() {
       min_order_amount: editMinOrder,
       description: editDescription,
       is_active: editIsActive,
+      allow_free_bottle: editAllowFreeBottle,
     });
     setIsSubmittingEdit(false);
 
@@ -518,6 +541,8 @@ export default function AdminPage() {
     if (couponFilter === "depleted" && c.available_coupons > 0) return false;
     if (couponFilter === "25_off" && c.discount_percent !== 25) return false;
     if (couponFilter === "35_off" && c.discount_percent !== 35) return false;
+    if (couponFilter === "bottle_allowed" && c.allow_free_bottle === false) return false;
+    if (couponFilter === "bottle_disallowed" && c.allow_free_bottle !== false) return false;
 
     return true;
   });
@@ -1372,6 +1397,8 @@ export default function AdminPage() {
                       <SelectItem value="25_off">25% Off Only ({coupons.filter((c) => c.discount_percent === 25).length})</SelectItem>
                       <SelectItem value="35_off">35% Off Only ({coupons.filter((c) => c.discount_percent === 35).length})</SelectItem>
                       <SelectItem value="free_delivery">Free Delivery ({freeDeliveryCount})</SelectItem>
+                      <SelectItem value="bottle_allowed">Free Bottle Allowed ({coupons.filter((c) => c.allow_free_bottle !== false).length})</SelectItem>
+                      <SelectItem value="bottle_disallowed">Free Bottle Excluded ({coupons.filter((c) => c.allow_free_bottle === false).length})</SelectItem>
                       <SelectItem value="depleted">Depleted / 0 Left ({coupons.filter((c) => c.available_coupons <= 0).length})</SelectItem>
                       <SelectItem value="inactive">Inactive / Disabled ({coupons.filter((c) => !c.is_active).length})</SelectItem>
                     </SelectContent>
@@ -1493,6 +1520,17 @@ export default function AdminPage() {
                             ) : (
                               <Badge variant="secondary" className="text-muted-foreground text-xs font-medium">
                                 Standard Delivery
+                              </Badge>
+                            )}
+                            {coupon.allow_free_bottle !== false ? (
+                              <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30 font-bold text-xs flex items-center gap-1">
+                                <Gift className="w-3 h-3" />
+                                Bottle on ₹1.2k+
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-muted-foreground text-xs font-medium flex items-center gap-1">
+                                <Gift className="w-3 h-3 opacity-50" />
+                                No Bottle
                               </Badge>
                             )}
                           </div>
@@ -1633,6 +1671,44 @@ export default function AdminPage() {
                         </div>
                       </div>
 
+                      {/* Free Bottle Allowance Toggle */}
+                      <div className="flex items-center justify-between text-xs py-2 px-3 rounded-xl bg-background/60 border border-border/50">
+                        <div className="flex items-center gap-2">
+                          <Gift
+                            className={cn(
+                              "w-4 h-4 shrink-0",
+                              coupon.allow_free_bottle !== false ? "text-amber-500" : "text-muted-foreground/50"
+                            )}
+                          />
+                          <div className="flex flex-col text-left">
+                            <span className="font-semibold text-foreground text-xs leading-none">
+                              Free Bottle on ₹1,200+ (After Discount)
+                            </span>
+                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                              {coupon.allow_free_bottle !== false
+                                ? "Allowed if cart stays ≥ ₹1,200 after applying this coupon"
+                                : "Cannot be combined with Free Bottle offer"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={cn(
+                              "text-[11px] font-bold",
+                              coupon.allow_free_bottle !== false ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                            )}
+                          >
+                            {coupon.allow_free_bottle !== false ? "Allowed" : "Excluded"}
+                          </span>
+                          <Switch
+                            checked={coupon.allow_free_bottle !== false}
+                            disabled={savingBottleId === coupon.id}
+                            onCheckedChange={(checked) => handleToggleCouponBottleAllowance(coupon, checked)}
+                            className="data-[state=checked]:bg-amber-500"
+                          />
+                        </div>
+                      </div>
+
                       {/* Card Bottom Controls */}
                       <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40 flex-wrap">
                         <div className="flex items-center gap-2">
@@ -1760,6 +1836,23 @@ export default function AdminPage() {
               <Switch checked={newIsFreeDelivery} onCheckedChange={setNewIsFreeDelivery} />
             </div>
 
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70">
+              <div className="space-y-0.5">
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Gift className="w-3.5 h-3.5 text-amber-500" />
+                  Allow Free Bottle on ₹1,200+ (After Discount)
+                </span>
+                <span className="text-[11px] text-muted-foreground block">
+                  Allow customers to get the Free Bottle if their order remains ≥ ₹1,200 after applying this coupon
+                </span>
+              </div>
+              <Switch
+                checked={newAllowFreeBottle}
+                onCheckedChange={setNewAllowFreeBottle}
+                className="data-[state=checked]:bg-amber-500"
+              />
+            </div>
+
             <div>
               <label className="text-xs font-semibold text-foreground mb-1 block">Description</label>
               <Input
@@ -1876,6 +1969,23 @@ export default function AdminPage() {
                   <span className="text-[11px] text-muted-foreground">Orders qualify for ₹0 free delivery</span>
                 </div>
                 <Switch checked={editIsFreeDelivery} onCheckedChange={setEditIsFreeDelivery} />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Gift className="w-3.5 h-3.5 text-amber-500" />
+                    Allow Free Bottle on ₹1,200+ (After Discount)
+                  </span>
+                  <span className="text-[11px] text-muted-foreground block">
+                    Allow customers to get the Free Bottle if their order remains ≥ ₹1,200 after applying this coupon
+                  </span>
+                </div>
+                <Switch
+                  checked={editAllowFreeBottle}
+                  onCheckedChange={setEditAllowFreeBottle}
+                  className="data-[state=checked]:bg-amber-500"
+                />
               </div>
 
               <div>

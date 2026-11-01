@@ -12,6 +12,7 @@ export type Coupon = {
   min_order_amount: number; // e.g. 0
   is_active: boolean;
   description: string;
+  allow_free_bottle: boolean; // true = free bottle also allowed if net order >= 1200
   created_at?: string;
   updated_at?: string;
 };
@@ -28,6 +29,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "25% OFF on your entire order (Standard delivery)",
+    allow_free_bottle: true,
   },
   {
     id: "coupon-save-25-free",
@@ -40,6 +42,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "25% OFF + FREE Delivery across India",
+    allow_free_bottle: true,
   },
   {
     id: "coupon-save-35",
@@ -52,6 +55,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "35% OFF on your entire order (Standard delivery)",
+    allow_free_bottle: false,
   },
   {
     id: "coupon-save-35-free",
@@ -64,6 +68,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "35% OFF + FREE Delivery across India",
+    allow_free_bottle: false,
   },
   {
     id: "coupon-fomo-25",
@@ -76,6 +81,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "25% OFF on Food On The Move treats",
+    allow_free_bottle: true,
   },
   {
     id: "coupon-fomo-25-free",
@@ -88,6 +94,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "25% OFF + FREE Delivery on your order",
+    allow_free_bottle: true,
   },
   {
     id: "coupon-fomo-35",
@@ -100,6 +107,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "35% OFF on Food On The Move treats",
+    allow_free_bottle: false,
   },
   {
     id: "coupon-fomo-35-free",
@@ -112,6 +120,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "35% OFF + FREE Delivery on your order",
+    allow_free_bottle: false,
   },
   {
     id: "coupon-fomo-20",
@@ -124,6 +133,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "Special 20% discount on order",
+    allow_free_bottle: true,
   },
   {
     id: "coupon-delivery-on-us",
@@ -136,6 +146,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 0,
     is_active: true,
     description: "Free ₹0 delivery fee coupon",
+    allow_free_bottle: true,
   },
   {
     id: "coupon-free-bottle",
@@ -148,6 +159,7 @@ export const INITIAL_COUPONS: Coupon[] = [
     min_order_amount: 1200,
     is_active: true,
     description: "FREE Food On The Move Stainless Steel Bottle (Worth ₹300) + Free Delivery on orders ₹1,200+",
+    allow_free_bottle: true,
   },
 ];
 
@@ -168,7 +180,20 @@ function loadLocalCoupons(): Coupon[] {
         const map = new Map<string, Coupon>();
         INITIAL_COUPONS.forEach((c) => map.set(c.code.toUpperCase(), c));
         parsed.forEach((c: Coupon) => {
-          if (c && c.code) map.set(c.code.toUpperCase(), c);
+          if (c && c.code) {
+            const codeKey = c.code.toUpperCase();
+            const def = map.get(codeKey);
+            map.set(codeKey, {
+              ...def,
+              ...c,
+              allow_free_bottle:
+                c.allow_free_bottle !== undefined
+                  ? c.allow_free_bottle
+                  : def?.allow_free_bottle !== undefined
+                  ? def.allow_free_bottle
+                  : true,
+            });
+          }
         });
         return Array.from(map.values());
       }
@@ -234,20 +259,36 @@ export async function fetchCoupons(): Promise<Coupon[]> {
         }
         cachedCoupons = INITIAL_COUPONS;
       } else {
-        const mapped: Coupon[] = data.map((row: any) => ({
-          id: String(row.id),
-          code: String(row.code || "").toUpperCase(),
-          discount_percent: Number(row.discount_percent || 0),
-          is_free_delivery: Boolean(row.is_free_delivery),
-          total_coupons: Number(row.total_coupons || 0),
-          available_coupons: Number(row.available_coupons ?? row.total_coupons ?? 0),
-          used_count: Number(row.used_count || 0),
-          min_order_amount: Number(row.min_order_amount || 0),
-          is_active: row.is_active !== false,
-          description: row.description || "",
-          created_at: row.created_at,
-          updated_at: row.updated_at,
-        }));
+        const mapped: Coupon[] = data.map((row: any) => {
+          const codeKey = String(row.code || "").toUpperCase();
+          const existingLocal = cachedCoupons.find((c) => c.code.toUpperCase() === codeKey);
+          const initialMatch = INITIAL_COUPONS.find((c) => c.code.toUpperCase() === codeKey);
+
+          let allowFreeBottle = true;
+          if (row.allow_free_bottle !== undefined && row.allow_free_bottle !== null) {
+            allowFreeBottle = Boolean(row.allow_free_bottle);
+          } else if (existingLocal && existingLocal.allow_free_bottle !== undefined) {
+            allowFreeBottle = existingLocal.allow_free_bottle;
+          } else if (initialMatch && initialMatch.allow_free_bottle !== undefined) {
+            allowFreeBottle = initialMatch.allow_free_bottle;
+          }
+
+          return {
+            id: String(row.id),
+            code: codeKey,
+            discount_percent: Number(row.discount_percent || 0),
+            is_free_delivery: Boolean(row.is_free_delivery),
+            total_coupons: Number(row.total_coupons || 0),
+            available_coupons: Number(row.available_coupons ?? row.total_coupons ?? 0),
+            used_count: Number(row.used_count || 0),
+            min_order_amount: Number(row.min_order_amount || 0),
+            is_active: row.is_active !== false,
+            description: row.description || "",
+            allow_free_bottle: allowFreeBottle,
+            created_at: row.created_at,
+            updated_at: row.updated_at,
+          };
+        });
         cachedCoupons = mapped;
         const bottle = mapped.find((c) => c.code?.toUpperCase() === "FREEBOTTLE");
         if (bottle && typeof window !== "undefined") {
@@ -454,27 +495,43 @@ export async function addCoupon(
     min_order_amount: Math.max(0, Number(data.min_order_amount) || 0),
     is_active: data.is_active !== false,
     description: data.description?.trim() || "",
+    allow_free_bottle: data.allow_free_bottle !== false,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
   // Try Supabase insert
   try {
-    const { data: inserted, error } = await supabase
+    const insertPayload: Record<string, any> = {
+      code: newCoupon.code,
+      discount_percent: newCoupon.discount_percent,
+      is_free_delivery: newCoupon.is_free_delivery,
+      total_coupons: newCoupon.total_coupons,
+      available_coupons: newCoupon.available_coupons,
+      used_count: 0,
+      min_order_amount: newCoupon.min_order_amount,
+      is_active: newCoupon.is_active,
+      description: newCoupon.description,
+      allow_free_bottle: newCoupon.allow_free_bottle,
+    };
+
+    let { data: inserted, error } = await supabase
       .from("coupons" as any)
-      .insert({
-        code: newCoupon.code,
-        discount_percent: newCoupon.discount_percent,
-        is_free_delivery: newCoupon.is_free_delivery,
-        total_coupons: newCoupon.total_coupons,
-        available_coupons: newCoupon.available_coupons,
-        used_count: 0,
-        min_order_amount: newCoupon.min_order_amount,
-        is_active: newCoupon.is_active,
-        description: newCoupon.description,
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
+
+    // Fallback if column does not exist yet in Supabase schema cache
+    if (error && (error.code === "PGRST204" || error.message?.includes("allow_free_bottle"))) {
+      delete insertPayload.allow_free_bottle;
+      const retry = await supabase
+        .from("coupons" as any)
+        .insert(insertPayload)
+        .select("id")
+        .single();
+      inserted = retry.data;
+      error = retry.error;
+    }
 
     if (!error && inserted?.id) {
       newCoupon.id = String(inserted.id);
@@ -517,21 +574,34 @@ export async function updateCoupon(
 
   // Try Supabase update
   try {
-    const { error } = await supabase
+    const updatePayload: Record<string, any> = {
+      code: updated.code,
+      discount_percent: updated.discount_percent,
+      is_free_delivery: updated.is_free_delivery,
+      total_coupons: updated.total_coupons,
+      available_coupons: updated.available_coupons,
+      used_count: updated.used_count,
+      min_order_amount: updated.min_order_amount,
+      is_active: updated.is_active,
+      description: updated.description,
+      allow_free_bottle: updated.allow_free_bottle,
+      updated_at: updated.updated_at,
+    };
+
+    let { error } = await supabase
       .from("coupons" as any)
-      .update({
-        code: updated.code,
-        discount_percent: updated.discount_percent,
-        is_free_delivery: updated.is_free_delivery,
-        total_coupons: updated.total_coupons,
-        available_coupons: updated.available_coupons,
-        used_count: updated.used_count,
-        min_order_amount: updated.min_order_amount,
-        is_active: updated.is_active,
-        description: updated.description,
-        updated_at: updated.updated_at,
-      })
+      .update(updatePayload)
       .eq("id", id);
+
+    // Fallback if column does not exist yet in Supabase schema cache
+    if (error && (error.code === "PGRST204" || error.message?.includes("allow_free_bottle"))) {
+      delete updatePayload.allow_free_bottle;
+      const retry = await supabase
+        .from("coupons" as any)
+        .update(updatePayload)
+        .eq("id", id);
+      error = retry.error;
+    }
 
     if (error) {
       console.warn("Supabase coupon update error:", error);
@@ -579,6 +649,13 @@ export async function deleteCoupon(id: string): Promise<{ success: boolean; erro
   notifyListeners();
 
   return { success: true };
+}
+
+export async function toggleCouponFreeBottleAllowance(
+  id: string,
+  allowed: boolean
+): Promise<{ success: boolean; error?: string }> {
+  return updateCoupon(id, { allow_free_bottle: allowed });
 }
 
 /**
@@ -643,6 +720,10 @@ export function useCoupons() {
     return setFreeBottleOfferActive(active);
   }, []);
 
+  const toggleCouponBottleAllowance = useCallback(async (id: string, allowed: boolean) => {
+    return toggleCouponFreeBottleAllowance(id, allowed);
+  }, []);
+
   return {
     coupons,
     loading,
@@ -657,5 +738,6 @@ export function useCoupons() {
     isSupabaseOnline,
     isFreeBottleActive: isFreeBottle,
     toggleFreeBottleOffer,
+    toggleCouponBottleAllowance,
   };
 }

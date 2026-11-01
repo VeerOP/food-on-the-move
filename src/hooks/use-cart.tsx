@@ -38,6 +38,9 @@ type CartCtx = {
   activeCoupon: Coupon | null;
   isFreeDeliveryCoupon: boolean;
   isFreeBottleOfferActive: boolean;
+  netSubtotal: number;
+  isFreeBottleEligible: boolean;
+  bottleIneligibilityReason: "disabled" | "coupon_disallowed" | "below_threshold" | null;
   addToCart: (slug: string, opts?: AddOptions) => Promise<void>;
   updateQty: (id: string, qty: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
@@ -97,6 +100,9 @@ const Ctx = createContext<CartCtx>({
   activeCoupon: null,
   isFreeDeliveryCoupon: false,
   isFreeBottleOfferActive: true,
+  netSubtotal: 0,
+  isFreeBottleEligible: false,
+  bottleIneligibilityReason: null,
   addToCart: async () => {},
   updateQty: async () => {},
   removeItem: async () => {},
@@ -268,13 +274,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
         .filter((i) => i.variant !== "free")
         .reduce((sum, item) => sum + item.quantity * item.price_inr, 0);
 
+      // Determine coupon effect on Free Bottle eligibility
+      const activeCpn = couponCode ? getCouponByCode(couponCode) : null;
+      let calculatedDiscount = 0;
+      if (activeCpn && activeCpn.discount_percent > 0) {
+        calculatedDiscount = Math.round(baseSubtotal * (activeCpn.discount_percent / 100));
+      } else if (couponCode.toUpperCase() === "FOMO20") {
+        calculatedDiscount = Math.round(baseSubtotal * 0.20);
+      }
+      const netSubtotal = Math.max(0, baseSubtotal - calculatedDiscount);
+
+      // Eligibility calculation:
+      // 1. Globally enabled
+      // 2. If no coupon: baseSubtotal >= 1200
+      // 3. If FREEBOTTLE coupon: baseSubtotal >= 1200
+      // 4. If other coupon: coupon must allow free bottle (allow_free_bottle !== false)
+      //    AND the value AFTER applying the coupon must also be >= 1200
+      let isEligible = false;
+      if (isFreeBottleOfferActive) {
+        if (!couponCode) {
+          isEligible = baseSubtotal >= FREE_BOTTLE_THRESHOLD;
+        } else if (couponCode.toUpperCase() === "FREEBOTTLE") {
+          isEligible = baseSubtotal >= FREE_BOTTLE_THRESHOLD;
+        } else {
+          const allowsBottle = activeCpn ? activeCpn.allow_free_bottle !== false : true;
+          isEligible = allowsBottle && netSubtotal >= FREE_BOTTLE_THRESHOLD;
+        }
+      }
+
       // Reset user rejection if they drop below threshold
-      if (baseSubtotal < FREE_BOTTLE_THRESHOLD) {
+      if (netSubtotal < FREE_BOTTLE_THRESHOLD) {
         localStorage.removeItem("rejected_free_gift");
       }
 
       const rejected = localStorage.getItem("rejected_free_gift") === "true";
-      const shouldHaveGift = baseSubtotal >= FREE_BOTTLE_THRESHOLD && !rejected;
+      const shouldHaveGift = isEligible && !rejected;
 
       if (shouldHaveGift && !fomoItem) {
         const product = CATALOG["fomo-steel-bottle"];
@@ -319,6 +353,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
             .eq("variant", "free");
         }
         updateItems((prev) => prev.filter((i) => i.variant !== "free"));
+        if (activeCpn && activeCpn.allow_free_bottle === false) {
+          toast.info(`Note: Coupon ${couponCode} cannot be combined with the Free Bottle offer.`);
+        } else if (couponCode && netSubtotal < FREE_BOTTLE_THRESHOLD && baseSubtotal >= FREE_BOTTLE_THRESHOLD) {
+          toast.info(`Cart total after ${couponCode} discount is ₹${netSubtotal.toFixed(0)} (below ₹1,200). Free Bottle removed.`);
+        }
       } else if (fomoItem && fomoItem.quantity !== 1) {
         if (user) {
           await supabase
@@ -511,9 +550,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
     ? Math.round(subtotal * 0.20)
     : 0;
 
+  const netSubtotal = Math.max(0, subtotal - discount);
+
   const isFreeDeliveryCoupon =
     Boolean(activeCoupon?.is_free_delivery) ||
     (couponCode.toUpperCase() === "DELIVERYONUS" && subtotal < 2000);
+
+  const isFreeBottleEligible = isFreeBottleOfferActive && (
+    !couponCode
+      ? subtotal >= FREE_BOTTLE_THRESHOLD
+      : couponCode.toUpperCase() === "FREEBOTTLE"
+      ? subtotal >= FREE_BOTTLE_THRESHOLD
+      : (activeCoupon?.allow_free_bottle !== false && netSubtotal >= FREE_BOTTLE_THRESHOLD)
+  );
+
+  const bottleIneligibilityReason = !isFreeBottleOfferActive
+    ? "disabled"
+    : couponCode && activeCoupon && activeCoupon.allow_free_bottle === false
+    ? "coupon_disallowed"
+    : (couponCode ? netSubtotal : subtotal) < FREE_BOTTLE_THRESHOLD
+    ? "below_threshold"
+    : null;
 
   const applyCoupon = (code: string, context?: { pincode?: string; address?: string }) => {
     const norm = (code || "").trim().toUpperCase();
@@ -605,6 +662,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         activeCoupon,
         isFreeDeliveryCoupon,
         isFreeBottleOfferActive,
+        netSubtotal,
+        isFreeBottleEligible,
+        bottleIneligibilityReason,
         addToCart,
         updateQty,
         removeItem,

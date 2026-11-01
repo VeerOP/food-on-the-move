@@ -29,6 +29,9 @@ export default function CartPage() {
     activeCoupon,
     isFreeDeliveryCoupon,
     isFreeBottleOfferActive,
+    netSubtotal,
+    isFreeBottleEligible,
+    bottleIneligibilityReason,
     applyCoupon,
     removeCoupon,
     clearCart,
@@ -213,16 +216,35 @@ export default function CartPage() {
                 {/* Free Bottle Perk Status */}
                 {isFreeBottleOfferActive && (
                   <div className="pt-2">
-                    {subtotal >= FREE_BOTTLE_THRESHOLD ? (
+                    {isFreeBottleEligible ? (
                       <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 font-semibold">
                         <Gift className="w-4 h-4 text-primary shrink-0" />
-                        <span>🎉 Free Food On The Move Bottle (Worth ₹300) included in your cart!</span>
+                        <span>
+                          {couponCode
+                            ? `🎉 Free Food On The Move Bottle (Worth ₹300) included with ${couponCode}!`
+                            : "🎉 Free Food On The Move Bottle (Worth ₹300) included in your cart!"}
+                        </span>
+                      </div>
+                    ) : bottleIneligibilityReason === "coupon_disallowed" ? (
+                      <div className="p-2.5 rounded-xl bg-muted/60 border border-border/80 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Gift className="w-4 h-4 text-muted-foreground shrink-0 opacity-70" />
+                        <span>
+                          Coupon <strong>{couponCode}</strong> cannot be combined with the Free Bottle offer.
+                        </span>
                       </div>
                     ) : (
                       <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2 text-xs text-foreground">
                         <Gift className="w-4 h-4 text-primary shrink-0" />
                         <span>
-                          Add <strong>₹{(FREE_BOTTLE_THRESHOLD - subtotal).toFixed(0)}</strong> more to get a <strong>FREE Food On The Move Bottle</strong>!
+                          {couponCode ? (
+                            <>
+                              Add <strong>₹{(FREE_BOTTLE_THRESHOLD - netSubtotal).toFixed(0)}</strong> more (after discount) to get a <strong>FREE Food On The Move Bottle</strong>!
+                            </>
+                          ) : (
+                            <>
+                              Add <strong>₹{(FREE_BOTTLE_THRESHOLD - subtotal).toFixed(0)}</strong> more to get a <strong>FREE Food On The Move Bottle</strong>!
+                            </>
+                          )}
                         </span>
                       </div>
                     )}
