@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useCart } from "@/hooks/use-cart";
 import { buildWhatsAppOrderMessage, whatsappLink, googleMapsLink, sendOrderEmailNotification } from "@/lib/notify";
+import { redeemCoupon } from "@/lib/coupons";
 import { toast } from "sonner";
 
 type OrderItem = {
@@ -241,6 +242,22 @@ export default function PayPage() {
               .eq("id", order.id);
 
             if (error) throw error;
+
+            // Redeem coupon applied to this order and automatically update usage & available quota
+            const orderCouponCode =
+              (order as any).coupon_code ||
+              localStorage.getItem(`fomo_order_coupon_${order.id}`) ||
+              localStorage.getItem("fomo_coupon_code");
+
+            if (orderCouponCode) {
+              try {
+                await redeemCoupon(orderCouponCode);
+              } catch (e) {
+                console.warn("Could not redeem coupon:", e);
+              } finally {
+                localStorage.removeItem(`fomo_order_coupon_${order.id}`);
+              }
+            }
 
             await clearCart();
 

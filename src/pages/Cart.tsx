@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { CartCounter } from "@/components/CartCounter";
 
 export default function CartPage() {
-  const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, applyCoupon, removeCoupon, clearCart } = useCart();
+  const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, activeCoupon, isFreeDeliveryCoupon, applyCoupon, removeCoupon, clearCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState("");
@@ -33,7 +33,6 @@ export default function CartPage() {
   };
 
   const rawDeliveryFee = computeDeliveryFee(subtotal);
-  const isFreeDeliveryCoupon = couponCode.toUpperCase() === "DELIVERYONUS" && subtotal < 2000;
   const deliveryFee = isFreeDeliveryCoupon ? 0 : rawDeliveryFee;
   const total = subtotal - discount + deliveryFee;
   const amountToFree = isFreeDeliveryCoupon ? 0 : Math.max(0, FREE_DELIVERY_THRESHOLD_INR - subtotal);
@@ -175,7 +174,7 @@ export default function CartPage() {
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-primary font-medium">
-                    <span>Discount (20%)</span>
+                    <span>Discount ({activeCoupon ? `${activeCoupon.discount_percent}%` : "20%"})</span>
                     <span>-₹{discount.toFixed(2)}</span>
                   </div>
                 )}
@@ -185,7 +184,7 @@ export default function CartPage() {
                 </div>
                 {isFreeDeliveryCoupon ? (
                   <p className="text-xs text-primary font-medium">
-                    ✓ Coupon DELIVERYONUS applied: Free ₹0 delivery!
+                    ✓ Coupon {couponCode} applied: Free ₹0 delivery!
                   </p>
                 ) : subtotal < 2000 ? (
                   <p className="text-xs text-primary/80 leading-normal">
@@ -220,9 +219,13 @@ export default function CartPage() {
                     <div className="flex flex-col">
                       <span className="font-semibold text-primary">{couponCode} applied</span>
                       <span className="text-xs text-muted-foreground">
-                        {couponCode.toUpperCase() === "DELIVERYONUS"
-                          ? "Free ₹0 Delivery"
-                          : "20% discount on total puffs"}
+                        {activeCoupon?.description || (
+                          couponCode.toUpperCase() === "DELIVERYONUS"
+                            ? "Free ₹0 Delivery"
+                            : activeCoupon && activeCoupon.discount_percent > 0
+                            ? `${activeCoupon.discount_percent}% discount on order`
+                            : "Discount applied"
+                        )}
                       </span>
                     </div>
                     <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 h-8 px-2.5 rounded-lg" onClick={removeCoupon}>

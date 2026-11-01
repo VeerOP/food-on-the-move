@@ -21,6 +21,17 @@ import {
   Package,
   RotateCcw,
   Image as ImageIcon,
+  Ticket,
+  Tag,
+  Percent,
+  Truck,
+  Edit2,
+  Trash2,
+  Copy,
+  Check,
+  Power,
+  ShieldCheck,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +47,19 @@ import { format } from "date-fns";
 import { ADMIN_ORDER_STATUSES, STATUS_LABEL, STATUS_STYLE, OrderStatus } from "@/lib/orderStatus";
 import { CATALOG, CatalogProduct } from "@/lib/catalog";
 import { useInventory, updateProductStock } from "@/lib/inventory";
+import { useCoupons, Coupon } from "@/lib/coupons";
 import { ManagePicturesModal } from "@/components/ManagePicturesModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 type AdminOrder = {
@@ -68,7 +91,7 @@ export default function AdminPage() {
   const navigate = useNavigate();
 
   // Navigation Tab
-  const [activeTab, setActiveTab] = useState<"orders" | "inventory">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "inventory" | "coupons">("orders");
 
   // Orders State
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -86,6 +109,53 @@ export default function AdminPage() {
   const [inventoryStatus, setInventoryStatus] = useState<"all" | "in_stock" | "low_stock" | "sold_out">("all");
   const [isRefreshingInventory, setIsRefreshingInventory] = useState(false);
   const [selectedProductForImages, setSelectedProductForImages] = useState<CatalogProduct | null>(null);
+
+  // Coupons State & Hook
+  const {
+    coupons,
+    loading: couponsLoading,
+    refresh: refreshCoupons,
+    addCoupon,
+    updateCoupon,
+    updateAvailableCount,
+    deleteCoupon,
+    isSupabaseOnline,
+  } = useCoupons();
+
+  const [couponSearch, setCouponSearch] = useState("");
+  const [couponFilter, setCouponFilter] = useState<string>("all");
+  const [copiedCouponCode, setCopiedCouponCode] = useState<string | null>(null);
+  const [quotaEdits, setQuotaEdits] = useState<Record<string, number>>({});
+  const [savingQuotaId, setSavingQuotaId] = useState<string | null>(null);
+  const [isRefreshingCoupons, setIsRefreshingCoupons] = useState(false);
+
+  // Add Coupon Dialog
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newCouponCode, setNewCouponCode] = useState("");
+  const [newDiscountPercent, setNewDiscountPercent] = useState<number>(25);
+  const [newIsFreeDelivery, setNewIsFreeDelivery] = useState(false);
+  const [newTotalCoupons, setNewTotalCoupons] = useState<number>(100);
+  const [newAvailableCoupons, setNewAvailableCoupons] = useState<number>(100);
+  const [newMinOrder, setNewMinOrder] = useState<number>(0);
+  const [newDescription, setNewDescription] = useState("");
+  const [newIsActive, setNewIsActive] = useState(true);
+  const [isSubmittingNewCoupon, setIsSubmittingNewCoupon] = useState(false);
+
+  // Edit Coupon Dialog
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
+  const [editCode, setEditCode] = useState("");
+  const [editDiscountPercent, setEditDiscountPercent] = useState<number>(25);
+  const [editIsFreeDelivery, setEditIsFreeDelivery] = useState(false);
+  const [editTotalCoupons, setEditTotalCoupons] = useState<number>(100);
+  const [editAvailableCoupons, setEditAvailableCoupons] = useState<number>(100);
+  const [editMinOrder, setEditMinOrder] = useState<number>(0);
+  const [editDescription, setEditDescription] = useState("");
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  // Delete Confirm Dialog
+  const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null);
+  const [isDeletingCoupon, setIsDeletingCoupon] = useState(false);
 
   useEffect(() => {
     if (authLoading || adminLoading) return;
@@ -249,6 +319,185 @@ export default function AdminPage() {
     setIsRefreshingInventory(false);
   };
 
+  // Coupon Helpers & Calculations
+  const handleRefreshCoupons = async () => {
+    setIsRefreshingCoupons(true);
+    await refreshCoupons();
+    toast.success("Coupons refreshed from database");
+    setIsRefreshingCoupons(false);
+  };
+
+  const handleCopyCouponCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCouponCode(code);
+    toast.success(`Coupon code ${code} copied!`);
+    setTimeout(() => {
+      setCopiedCouponCode((prev) => (prev === code ? null : prev));
+    }, 2000);
+  };
+
+  const handleOpenAddModal = () => {
+    setNewCouponCode("");
+    setNewDiscountPercent(25);
+    setNewIsFreeDelivery(false);
+    setNewTotalCoupons(100);
+    setNewAvailableCoupons(100);
+    setNewMinOrder(0);
+    setNewDescription("25% OFF on your entire order");
+    setNewIsActive(true);
+    setIsAddModalOpen(true);
+  };
+
+  const handleCreateNewCoupon = async () => {
+    if (!newCouponCode.trim()) {
+      toast.error("Please provide a valid coupon code");
+      return;
+    }
+    setIsSubmittingNewCoupon(true);
+    const res = await addCoupon({
+      code: newCouponCode,
+      discount_percent: newDiscountPercent,
+      is_free_delivery: newIsFreeDelivery,
+      total_coupons: newTotalCoupons,
+      available_coupons: newAvailableCoupons,
+      min_order_amount: newMinOrder,
+      description: newDescription,
+      is_active: newIsActive,
+    });
+    setIsSubmittingNewCoupon(false);
+
+    if (res.success) {
+      toast.success(`Coupon ${res.coupon?.code} created successfully!`);
+      setIsAddModalOpen(false);
+    } else {
+      toast.error(res.error || "Failed to create coupon");
+    }
+  };
+
+  const handleOpenEditModal = (coupon: Coupon) => {
+    setEditingCoupon(coupon);
+    setEditCode(coupon.code);
+    setEditDiscountPercent(coupon.discount_percent);
+    setEditIsFreeDelivery(coupon.is_free_delivery);
+    setEditTotalCoupons(coupon.total_coupons);
+    setEditAvailableCoupons(coupon.available_coupons);
+    setEditMinOrder(coupon.min_order_amount);
+    setEditDescription(coupon.description || "");
+    setEditIsActive(coupon.is_active);
+  };
+
+  const handleSaveEditCoupon = async () => {
+    if (!editingCoupon) return;
+    if (!editCode.trim()) {
+      toast.error("Coupon code cannot be empty");
+      return;
+    }
+    setIsSubmittingEdit(true);
+    const res = await updateCoupon(editingCoupon.id, {
+      code: editCode,
+      discount_percent: editDiscountPercent,
+      is_free_delivery: editIsFreeDelivery,
+      total_coupons: editTotalCoupons,
+      available_coupons: editAvailableCoupons,
+      min_order_amount: editMinOrder,
+      description: editDescription,
+      is_active: editIsActive,
+    });
+    setIsSubmittingEdit(false);
+
+    if (res.success) {
+      toast.success(`Coupon ${editCode.toUpperCase()} updated successfully!`);
+      setEditingCoupon(null);
+    } else {
+      toast.error(res.error || "Failed to update coupon");
+    }
+  };
+
+  const handleConfirmDeleteCoupon = async () => {
+    if (!deletingCoupon) return;
+    setIsDeletingCoupon(true);
+    const res = await deleteCoupon(deletingCoupon.id);
+    setIsDeletingCoupon(false);
+    if (res.success) {
+      toast.success(`Coupon ${deletingCoupon.code} removed`);
+      setDeletingCoupon(null);
+    } else {
+      toast.error(res.error || "Failed to remove coupon");
+    }
+  };
+
+  const handleToggleCouponStatus = async (coupon: Coupon) => {
+    const nextStatus = !coupon.is_active;
+    const res = await updateCoupon(coupon.id, { is_active: nextStatus });
+    if (res.success) {
+      toast.success(`Coupon ${coupon.code} marked ${nextStatus ? "Active" : "Inactive"}`);
+    } else {
+      toast.error(res.error || "Failed to update coupon status");
+    }
+  };
+
+  const handleQuickAdjustQuota = async (coupon: Coupon, delta: number) => {
+    const current = quotaEdits[coupon.id] !== undefined ? quotaEdits[coupon.id] : coupon.available_coupons;
+    const target = Math.max(0, current + delta);
+    setQuotaEdits((prev) => ({ ...prev, [coupon.id]: target }));
+    setSavingQuotaId(coupon.id);
+    const res = await updateAvailableCount(coupon.id, target);
+    setSavingQuotaId(null);
+    if (res.success) {
+      toast.success(`Updated ${coupon.code} available quota to ${target}`);
+      setQuotaEdits((prev) => {
+        const next = { ...prev };
+        delete next[coupon.id];
+        return next;
+      });
+    } else {
+      toast.error(res.error || "Failed to update quota");
+    }
+  };
+
+  const handleSaveQuotaInput = async (coupon: Coupon) => {
+    const target = quotaEdits[coupon.id];
+    if (target === undefined) return;
+    setSavingQuotaId(coupon.id);
+    const res = await updateAvailableCount(coupon.id, target);
+    setSavingQuotaId(null);
+    if (res.success) {
+      toast.success(`Updated ${coupon.code} available quota to ${target}`);
+      setQuotaEdits((prev) => {
+        const next = { ...prev };
+        delete next[coupon.id];
+        return next;
+      });
+    } else {
+      toast.error(res.error || "Failed to update quota");
+    }
+  };
+
+  // Filtered coupons
+  const filteredCoupons = coupons.filter((c) => {
+    if (couponSearch.trim()) {
+      const q = couponSearch.toLowerCase();
+      const matchCode = c.code.toLowerCase().includes(q);
+      const matchDesc = (c.description || "").toLowerCase().includes(q);
+      if (!matchCode && !matchDesc) return false;
+    }
+
+    if (couponFilter === "active" && (!c.is_active || c.available_coupons <= 0)) return false;
+    if (couponFilter === "inactive" && c.is_active) return false;
+    if (couponFilter === "free_delivery" && !c.is_free_delivery) return false;
+    if (couponFilter === "depleted" && c.available_coupons > 0) return false;
+    if (couponFilter === "25_off" && c.discount_percent !== 25) return false;
+    if (couponFilter === "35_off" && c.discount_percent !== 35) return false;
+
+    return true;
+  });
+
+  const totalActiveCoupons = coupons.filter((c) => c.is_active && c.available_coupons > 0).length;
+  const totalCouponsCount = coupons.length;
+  const totalUsedCount = coupons.reduce((acc, c) => acc + (c.used_count || 0), 0);
+  const totalAvailableQuota = coupons.reduce((acc, c) => acc + (c.available_coupons || 0), 0);
+  const freeDeliveryCount = coupons.filter((c) => c.is_free_delivery).length;
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
@@ -332,6 +581,29 @@ export default function AdminPage() {
               )}
             >
               {soldOutCount > 0 ? `${soldOutCount} Sold Out` : `${totalProductsCount} Products`}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab("coupons")}
+            className={cn(
+              "flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer",
+              activeTab === "coupons"
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                : "text-muted-foreground hover:text-foreground hover:bg-card/70 border border-transparent"
+            )}
+          >
+            <Ticket className="w-4 h-4" />
+            <span>Coupons & Discounts</span>
+            <span
+              className={cn(
+                "px-2 py-0.5 rounded-full text-xs font-bold",
+                activeTab === "coupons"
+                  ? "bg-white/20 text-white"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {totalActiveCoupons} Active
             </span>
           </button>
         </div>
@@ -902,16 +1174,703 @@ export default function AdminPage() {
             )}
           </div>
         )}
+        {/* ========================================================= */}
+        {/* TAB 3: COUPONS & DISCOUNTS MANAGEMENT                      */}
+        {/* ========================================================= */}
+        {activeTab === "coupons" && (
+          <div className="space-y-8 animate-fade-in">
+            {/* Supabase Status Banner */}
+            <div
+              className={cn(
+                "p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs",
+                isSupabaseOnline
+                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
+                  : "bg-amber-500/10 border-amber-500/30 text-amber-800 dark:text-amber-300"
+              )}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className={cn("w-5 h-5 shrink-0", isSupabaseOnline ? "text-emerald-600" : "text-amber-600")} />
+                <div>
+                  <p className="font-semibold text-sm">
+                    {isSupabaseOnline ? "Live Supabase Database Sync Active" : "Local Storage Engine (Active & Ready)"}
+                  </p>
+                  <p className="opacity-90">
+                    {isSupabaseOnline
+                      ? "Coupons are synced with PostgreSQL in real-time. Whenever a customer pays, availability decrements automatically."
+                      : "Coupons are stored in local storage cache and fully operational. For cloud sync, run the SQL script in your Supabase Editor."}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleRefreshCoupons}
+                  disabled={isRefreshingCoupons}
+                  className="rounded-xl h-8 text-xs gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5", isRefreshingCoupons && "animate-spin")} />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+
+            {/* 4 Stat Overview Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Active Coupons</span>
+                  <div className="p-2 rounded-xl bg-emerald-500/15 text-emerald-600">
+                    <Ticket className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                  {totalActiveCoupons}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  out of {totalCouponsCount} configured codes
+                </p>
+              </div>
+
+              <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Usages</span>
+                  <div className="p-2 rounded-xl bg-primary/15 text-primary">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                  {totalUsedCount}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  redeemed on paid customer orders
+                </p>
+              </div>
+
+              <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Available</span>
+                  <div className="p-2 rounded-xl bg-blue-500/15 text-blue-600">
+                    <Boxes className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                  {totalAvailableQuota}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  total coupons left for customers
+                </p>
+              </div>
+
+              <div className="bg-card border border-border/60 rounded-2xl p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Special Offers</span>
+                  <div className="p-2 rounded-xl bg-amber-500/15 text-amber-600">
+                    <Percent className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-display text-2xl sm:text-3xl font-black text-foreground">
+                  25% & 35%
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {freeDeliveryCount} include Free Delivery
+                </p>
+              </div>
+            </div>
+
+            {/* Filter and Action Bar */}
+            <div className="bg-card border border-border/60 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+              <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by code (e.g. SAVE25, FOMO35) or description..."
+                    value={couponSearch}
+                    onChange={(e) => setCouponSearch(e.target.value)}
+                    className="pl-9 bg-background/50 rounded-xl"
+                  />
+                </div>
+                <div className="min-w-[180px]">
+                  <Select value={couponFilter} onValueChange={setCouponFilter}>
+                    <SelectTrigger className="bg-background/50 border-border rounded-xl">
+                      <SelectValue placeholder="Filter coupons" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border">
+                      <SelectItem value="all">All Coupons ({coupons.length})</SelectItem>
+                      <SelectItem value="active">Active & Available ({totalActiveCoupons})</SelectItem>
+                      <SelectItem value="25_off">25% Off Only ({coupons.filter((c) => c.discount_percent === 25).length})</SelectItem>
+                      <SelectItem value="35_off">35% Off Only ({coupons.filter((c) => c.discount_percent === 35).length})</SelectItem>
+                      <SelectItem value="free_delivery">Free Delivery ({freeDeliveryCount})</SelectItem>
+                      <SelectItem value="depleted">Depleted / 0 Left ({coupons.filter((c) => c.available_coupons <= 0).length})</SelectItem>
+                      <SelectItem value="inactive">Inactive / Disabled ({coupons.filter((c) => !c.is_active).length})</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <Button
+                  onClick={handleOpenAddModal}
+                  className="rounded-xl font-bold gap-2 cursor-pointer shadow-md shadow-primary/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add New Coupon</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Coupons Cards / Grid */}
+            {couponsLoading ? (
+              <div className="py-16 text-center text-muted-foreground">
+                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-3" />
+                <p>Loading coupons…</p>
+              </div>
+            ) : filteredCoupons.length === 0 ? (
+              <div className="bg-card border border-border/50 rounded-2xl p-12 text-center text-muted-foreground">
+                <Ticket className="w-12 h-12 mx-auto mb-3 opacity-30 text-primary" />
+                <p className="font-semibold text-foreground text-lg mb-1">No coupons found</p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {couponSearch || couponFilter !== "all"
+                    ? "No coupons match your filter or search criteria."
+                    : "No coupons created yet."}
+                </p>
+                <Button variant="outline" onClick={handleOpenAddModal} className="rounded-xl">
+                  Create First Coupon
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredCoupons.map((coupon) => {
+                  const isDepleted = coupon.available_coupons <= 0;
+                  const isLow = coupon.available_coupons > 0 && coupon.available_coupons <= 5;
+                  const usageRate =
+                    coupon.total_coupons > 0
+                      ? Math.min(100, Math.round((coupon.used_count / coupon.total_coupons) * 100))
+                      : 0;
+
+                  const currentInput =
+                    quotaEdits[coupon.id] !== undefined ? quotaEdits[coupon.id] : coupon.available_coupons;
+                  const isDirty = currentInput !== coupon.available_coupons;
+                  const isSavingThis = savingQuotaId === coupon.id;
+
+                  return (
+                    <motion.div
+                      key={coupon.id}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        "bg-card border rounded-2xl p-5 flex flex-col justify-between gap-4 transition-all shadow-sm",
+                        !coupon.is_active
+                          ? "border-border/40 opacity-75 bg-card/60"
+                          : isDepleted
+                          ? "border-destructive/30"
+                          : "border-border/70 hover:border-primary/40 hover:shadow-md"
+                      )}
+                    >
+                      {/* Top Header */}
+                      <div>
+                        <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono font-black text-lg sm:text-xl text-primary tracking-wider bg-primary/10 px-3 py-1 rounded-xl border border-primary/20">
+                              {coupon.code}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCouponCode(coupon.code)}
+                              className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors cursor-pointer"
+                              title="Copy coupon code"
+                            >
+                              {copiedCouponCode === coupon.code ? (
+                                <Check className="w-4 h-4 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </button>
+                            <Badge
+                              variant={coupon.is_active ? "default" : "outline"}
+                              className={cn(
+                                "text-xs font-semibold px-2 py-0.5",
+                                coupon.is_active
+                                  ? isDepleted
+                                    ? "bg-destructive/15 text-destructive border-destructive/30"
+                                    : "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                                  : "text-muted-foreground"
+                              )}
+                            >
+                              {!coupon.is_active
+                                ? "Disabled"
+                                : isDepleted
+                                ? "Depleted (0 Left)"
+                                : isLow
+                                ? "Low Quota"
+                                : "Active"}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {coupon.discount_percent > 0 && (
+                              <Badge className="bg-primary/15 text-primary border-primary/30 font-bold text-xs">
+                                {coupon.discount_percent}% OFF
+                              </Badge>
+                            )}
+                            {coupon.is_free_delivery ? (
+                              <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30 font-bold text-xs flex items-center gap-1">
+                                <Truck className="w-3 h-3" />
+                                Free Delivery
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-muted-foreground text-xs font-medium">
+                                Standard Delivery
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-xs sm:text-sm text-foreground/80 mt-1 line-clamp-2">
+                          {coupon.description || "Custom discount coupon"}
+                        </p>
+
+                        {coupon.min_order_amount > 0 && (
+                          <p className="text-[11px] text-muted-foreground mt-1">
+                            Min. order amount: ₹{coupon.min_order_amount.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Usage & Available Quota Section */}
+                      <div className="bg-background/60 rounded-xl p-3 border border-border/50 space-y-2.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground font-medium">Redemption Progress</span>
+                          <span className="font-semibold text-foreground">
+                            {coupon.used_count} used / {coupon.total_coupons} total limit ({usageRate}%)
+                          </span>
+                        </div>
+
+                        <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-300",
+                              isDepleted
+                                ? "bg-destructive"
+                                : isLow
+                                ? "bg-amber-500"
+                                : "bg-primary"
+                            )}
+                            style={{ width: `${Math.min(100, Math.max(0, usageRate))}%` }}
+                          />
+                        </div>
+
+                        {/* Available Quota Quick Edit */}
+                        <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">Available Quota:</span>
+                            <span
+                              className={cn(
+                                "text-xs font-bold px-2 py-0.5 rounded-md",
+                                isDepleted
+                                  ? "bg-destructive/15 text-destructive"
+                                  : isLow
+                                  ? "bg-amber-500/15 text-amber-600"
+                                  : "bg-emerald-500/15 text-emerald-600"
+                              )}
+                            >
+                              {coupon.available_coupons} left
+                            </span>
+                          </div>
+
+                          {/* Quick Adjust Buttons */}
+                          <div className="flex items-center gap-1">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleQuickAdjustQuota(coupon, -10)}
+                              disabled={isSavingThis || coupon.available_coupons <= 0}
+                              className="h-7 px-2 text-xs rounded-lg cursor-pointer"
+                              title="Decrease available by 10"
+                            >
+                              -10
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleQuickAdjustQuota(coupon, -1)}
+                              disabled={isSavingThis || coupon.available_coupons <= 0}
+                              className="h-7 w-7 p-0 text-xs rounded-lg cursor-pointer"
+                              title="Decrease available by 1"
+                            >
+                              -1
+                            </Button>
+
+                            <Input
+                              type="number"
+                              min="0"
+                              value={currentInput}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                setQuotaEdits((prev) => ({
+                                  ...prev,
+                                  [coupon.id]: isNaN(val) ? 0 : Math.max(0, val),
+                                }));
+                              }}
+                              className="w-16 h-7 text-xs text-center px-1 font-bold rounded-lg"
+                            />
+
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleQuickAdjustQuota(coupon, 1)}
+                              disabled={isSavingThis}
+                              className="h-7 w-7 p-0 text-xs rounded-lg cursor-pointer"
+                              title="Increase available by 1"
+                            >
+                              +1
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleQuickAdjustQuota(coupon, 10)}
+                              disabled={isSavingThis}
+                              className="h-7 px-2 text-xs rounded-lg cursor-pointer"
+                              title="Increase available by 10"
+                            >
+                              +10
+                            </Button>
+
+                            {isDirty && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={() => handleSaveQuotaInput(coupon)}
+                                disabled={isSavingThis}
+                                className="h-7 px-2.5 text-xs rounded-lg font-bold bg-primary text-primary-foreground gap-1 cursor-pointer"
+                              >
+                                {isSavingThis ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Check className="w-3 h-3" />
+                                )}
+                                Save
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Card Bottom Controls */}
+                      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={coupon.is_active}
+                            onCheckedChange={() => handleToggleCouponStatus(coupon)}
+                            id={`switch-${coupon.id}`}
+                          />
+                          <label
+                            htmlFor={`switch-${coupon.id}`}
+                            className="text-xs font-medium cursor-pointer select-none text-muted-foreground hover:text-foreground"
+                          >
+                            {coupon.is_active ? "Enabled" : "Disabled"}
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenEditModal(coupon)}
+                            className="h-8 px-3 rounded-xl text-xs gap-1.5 cursor-pointer font-semibold"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Edit Details
+                          </Button>
+
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setDeletingCoupon(coupon)}
+                            className="h-8 px-2.5 rounded-xl text-xs text-destructive hover:bg-destructive/10 cursor-pointer"
+                            title="Delete coupon"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {selectedProductForImages && (
-        <ManagePicturesModal
-          product={selectedProductForImages}
-          isOpen={!!selectedProductForImages}
-          onClose={() => setSelectedProductForImages(null)}
-          customImages={inventory[selectedProductForImages.slug]?.images}
-        />
-      )}
+      {/* Add Coupon Modal */}
+      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+        <DialogContent className="max-w-md bg-card border-border rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Add New Coupon</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Create a custom coupon code with specific discount rates, delivery perks, and availability quota.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 text-sm">
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">Coupon Code</label>
+              <Input
+                placeholder="e.g. SAVE25, FESTIVE35"
+                value={newCouponCode}
+                onChange={(e) => setNewCouponCode(e.target.value.toUpperCase())}
+                className="font-mono uppercase font-bold rounded-xl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Discount (%)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={newDiscountPercent}
+                  onChange={(e) => setNewDiscountPercent(Number(e.target.value) || 0)}
+                  className="rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Min. Order (₹)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newMinOrder}
+                  onChange={(e) => setNewMinOrder(Number(e.target.value) || 0)}
+                  className="rounded-xl font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Total Quota (Limit)</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newTotalCoupons}
+                  onChange={(e) => setNewTotalCoupons(Number(e.target.value) || 0)}
+                  className="rounded-xl font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Available Now</label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newAvailableCoupons}
+                  onChange={(e) => setNewAvailableCoupons(Number(e.target.value) || 0)}
+                  className="rounded-xl font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70">
+              <div className="space-y-0.5">
+                <span className="text-xs font-semibold text-foreground block">Free Delivery Perk</span>
+                <span className="text-[11px] text-muted-foreground">Grant ₹0 free delivery when this coupon is applied</span>
+              </div>
+              <Switch checked={newIsFreeDelivery} onCheckedChange={setNewIsFreeDelivery} />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground mb-1 block">Description</label>
+              <Input
+                placeholder="e.g. 25% OFF with Free Delivery"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                className="rounded-xl text-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70">
+              <div className="space-y-0.5">
+                <span className="text-xs font-semibold text-foreground block">Active Status</span>
+                <span className="text-[11px] text-muted-foreground">Enable coupon immediately for customers</span>
+              </div>
+              <Switch checked={newIsActive} onCheckedChange={setNewIsActive} />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateNewCoupon}
+              disabled={isSubmittingNewCoupon || !newCouponCode.trim()}
+              className="rounded-xl font-bold gap-1.5"
+            >
+              {isSubmittingNewCoupon && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              Create Coupon
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Coupon Modal */}
+      <Dialog open={!!editingCoupon} onOpenChange={(open) => !open && setEditingCoupon(null)}>
+        <DialogContent className="max-w-md bg-card border-border rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Edit Coupon</DialogTitle>
+            <DialogDescription className="text-muted-foreground text-xs">
+              Modify the coupon code, available quotas, discount percentage, and perks.
+            </DialogDescription>
+          </DialogHeader>
+
+          {editingCoupon && (
+            <div className="space-y-4 py-2 text-sm">
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Coupon Code</label>
+                <Input
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value.toUpperCase())}
+                  className="font-mono uppercase font-bold rounded-xl"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">Discount (%)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editDiscountPercent}
+                    onChange={(e) => setEditDiscountPercent(Number(e.target.value) || 0)}
+                    className="rounded-xl font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">Min. Order (₹)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editMinOrder}
+                    onChange={(e) => setEditMinOrder(Number(e.target.value) || 0)}
+                    className="rounded-xl font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">Total Quota (Limit)</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editTotalCoupons}
+                    onChange={(e) => setEditTotalCoupons(Number(e.target.value) || 0)}
+                    className="rounded-xl font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground mb-1 block">Available Count</label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editAvailableCoupons}
+                    onChange={(e) => setEditAvailableCoupons(Number(e.target.value) || 0)}
+                    className="rounded-xl font-bold text-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-xl bg-muted/50 border border-border/50 text-xs text-muted-foreground flex items-center justify-between">
+                <span>Current Usage Count:</span>
+                <span className="font-bold text-foreground">{editingCoupon.used_count} times redeemed</span>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-semibold text-foreground block">Free Delivery Perk</span>
+                  <span className="text-[11px] text-muted-foreground">Orders qualify for ₹0 free delivery</span>
+                </div>
+                <Switch checked={editIsFreeDelivery} onCheckedChange={setEditIsFreeDelivery} />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-foreground mb-1 block">Description</label>
+                <Input
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="rounded-xl text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-xl bg-background border border-border/70">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-semibold text-foreground block">Active Status</span>
+                  <span className="text-[11px] text-muted-foreground">Allow customers to redeem this coupon</span>
+                </div>
+                <Switch checked={editIsActive} onCheckedChange={setEditIsActive} />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setEditingCoupon(null)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEditCoupon}
+              disabled={isSubmittingEdit || !editCode.trim()}
+              className="rounded-xl font-bold gap-1.5"
+            >
+              {isSubmittingEdit && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Modal */}
+      <Dialog open={!!deletingCoupon} onOpenChange={(open) => !open && setDeletingCoupon(null)}>
+        <DialogContent className="max-w-sm bg-card border-border rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-xl text-destructive flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> Delete Coupon
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Are you sure you want to permanently delete coupon{" "}
+              <strong className="text-foreground">{deletingCoupon?.code}</strong>? Customers will no longer be able to use it.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button variant="outline" onClick={() => setDeletingCoupon(null)} className="rounded-xl">
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmDeleteCoupon}
+              disabled={isDeletingCoupon}
+              className="rounded-xl font-bold gap-1.5"
+            >
+              {isDeletingCoupon && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

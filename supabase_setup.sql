@@ -321,3 +321,110 @@ BEGIN
   END IF;
 END $$;
 
+
+-- 8. Coupons & Discounts Configuration
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS discount_inr NUMERIC(10,2) DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS public.coupons (
+  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+  code TEXT NOT NULL UNIQUE,
+  discount_percent NUMERIC(5,2) NOT NULL DEFAULT 0 CHECK (discount_percent >= 0 AND discount_percent <= 100),
+  is_free_delivery BOOLEAN NOT NULL DEFAULT false,
+  total_coupons INTEGER NOT NULL DEFAULT 100 CHECK (total_coupons >= 0),
+  available_coupons INTEGER NOT NULL DEFAULT 100 CHECK (available_coupons >= 0),
+  used_count INTEGER NOT NULL DEFAULT 0 CHECK (used_count >= 0),
+  min_order_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read coupons" ON public.coupons;
+CREATE POLICY "Public read coupons" ON public.coupons
+  FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow manage coupons" ON public.coupons;
+CREATE POLICY "Allow manage coupons" ON public.coupons
+  FOR ALL USING (true);
+
+-- Seed Initial Custom Coupons (25% & 35% with and without free delivery)
+INSERT INTO public.coupons (code, discount_percent, is_free_delivery, total_coupons, available_coupons, used_count, description)
+VALUES 
+  ('SAVE25', 25, false, 100, 100, 0, '25% OFF on your entire order (Standard delivery)'),
+  ('SAVE25FREE', 25, true, 100, 100, 0, '25% OFF + FREE Delivery across India'),
+  ('SAVE35', 35, false, 100, 100, 0, '35% OFF on your entire order (Standard delivery)'),
+  ('SAVE35FREE', 35, true, 100, 100, 0, '35% OFF + FREE Delivery across India'),
+  ('FOMO25', 25, false, 100, 100, 0, '25% OFF on Food On The Move treats'),
+  ('FOMO25FREE', 25, true, 100, 100, 0, '25% OFF + FREE Delivery on your order'),
+  ('FOMO35', 35, false, 100, 100, 0, '35% OFF on Food On The Move treats'),
+  ('FOMO35FREE', 35, true, 100, 100, 0, '35% OFF + FREE Delivery on your order'),
+  ('FOMO20', 20, false, 500, 500, 0, 'Special 20% discount on order'),
+  ('DELIVERYONUS', 0, true, 1000, 1000, 0, 'Free ₹0 delivery fee coupon')
+ON CONFLICT (code) DO NOTHING;
+
+-- Atomic coupon redemption stored procedure (prevents race conditions across concurrent customer payments)
+CREATE OR REPLACE FUNCTION public.redeem_coupon(p_code TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_coupon public.coupons%ROWTYPE;
+BEGIN
+  SELECT * INTO v_coupon
+  FROM public.coupons
+  WHERE UPPER(code) = UPPER(TRIM(p_code))
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Coupon not found');
+  END IF;
+
+  IF NOT v_coupon.is_active THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Coupon is inactive');
+  END IF;
+
+  IF v_coupon.available_coupons <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Coupon quota is depleted');
+  END IF;
+
+  UPDATE public.coupons
+  SET available_coupons = available_coupons - 1,
+      used_count = used_count + 1,
+      updated_at = now()
+  WHERE id = v_coupon.id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'available_coupons', v_coupon.available_coupons - 1,
+    'used_count', v_coupon.used_count + 1
+  );
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.redeem_coupon(TEXT) TO anon, authenticated, service_role;
+
+
+-- 9. Realtime Synchronization Publication
+-- Ensures real-time updates are broadcast to all browser tabs, devices, and logins
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.coupons;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.product_inventory;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END $$;
+
+

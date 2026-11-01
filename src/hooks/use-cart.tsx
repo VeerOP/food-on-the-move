@@ -6,6 +6,7 @@ import { getAvailableStock, isSoldOut } from "@/lib/inventory";
 import { isMumbaiAddress } from "@/lib/delivery";
 import { toast } from "sonner";
 import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
+import { Coupon, validateCoupon, getCouponByCode, fetchCoupons } from "@/lib/coupons";
 
 export const FREE_BOTTLE_OFFER_ACTIVE = true;
 export const FREE_BOTTLE_THRESHOLD = 1200;
@@ -34,6 +35,8 @@ type CartCtx = {
   subtotal: number;
   couponCode: string;
   discount: number;
+  activeCoupon: Coupon | null;
+  isFreeDeliveryCoupon: boolean;
   addToCart: (slug: string, opts?: AddOptions) => Promise<void>;
   updateQty: (id: string, qty: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
@@ -90,6 +93,8 @@ const Ctx = createContext<CartCtx>({
   subtotal: 0,
   couponCode: "",
   discount: 0,
+  activeCoupon: null,
+  isFreeDeliveryCoupon: false,
   addToCart: async () => {},
   updateQty: async () => {},
   removeItem: async () => {},
@@ -475,46 +480,46 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const count = items.reduce((s, i) => s + i.quantity, 0);
   const subtotal = items.reduce((s, i) => s + i.quantity * i.price_inr, 0);
-  const discount = couponCode.toUpperCase() === "FOMO20" ? Math.round(subtotal * 0.20) : 0;
+
+  const activeCoupon = couponCode ? getCouponByCode(couponCode) ?? null : null;
+
+  const discount = activeCoupon && activeCoupon.discount_percent > 0
+    ? Math.round(subtotal * (activeCoupon.discount_percent / 100))
+    : couponCode.toUpperCase() === "FOMO20"
+    ? Math.round(subtotal * 0.20)
+    : 0;
+
+  const isFreeDeliveryCoupon =
+    Boolean(activeCoupon?.is_free_delivery) ||
+    (couponCode.toUpperCase() === "DELIVERYONUS" && subtotal < 2000);
 
   const applyCoupon = (code: string, context?: { pincode?: string; address?: string }) => {
-    const upper = (code || "").trim().toUpperCase();
-    if (upper === "FOMO20") {
-      setCouponCode("FOMO20");
-      localStorage.setItem(COUPON_STORAGE_KEY, "FOMO20");
-      toast.success("Coupon FOMO20 applied! 20% discount added.");
-      return true;
+    const res = validateCoupon(code, subtotal, context);
+    if (!res.valid) {
+      toast.error(res.error || "Invalid coupon code");
+      return false;
     }
-    if (upper === "DELIVERYONUS") {
-      const hasLocation = Boolean(context?.pincode?.trim() || context?.address?.trim());
-      const inMumbai = hasLocation ? isMumbaiAddress(context?.pincode || "", context?.address || "") : null;
 
-      if (inMumbai === true) {
-        if (subtotal >= 1000) {
-          toast.error("DELIVERYONUS is only applicable for orders under ₹1,000 in Mumbai. Orders of ₹1,000+ already qualify for free delivery!");
-          return false;
-        }
-      } else if (inMumbai === false) {
-        if (subtotal >= 2000) {
-          toast.error("DELIVERYONUS is only applicable for orders under ₹2,000 outside Mumbai. Orders of ₹2,000+ already qualify for free delivery!");
-          return false;
-        }
-      } else {
-        // Location not yet specified (e.g. on Cart page)
-        if (subtotal >= 2000) {
-          toast.error("DELIVERYONUS is only applicable for orders under ₹1,000 in Mumbai and under ₹2,000 outside Mumbai. Your order already qualifies for free delivery!");
-          return false;
-        }
-      }
-
-      setCouponCode("DELIVERYONUS");
-      // Do not store in localStorage so it never auto-applies on future sessions
+    const norm = (code || "").trim().toUpperCase();
+    setCouponCode(norm);
+    if (norm !== "DELIVERYONUS") {
+      localStorage.setItem(COUPON_STORAGE_KEY, norm);
+    } else {
       localStorage.removeItem(COUPON_STORAGE_KEY);
-      toast.success("Coupon DELIVERYONUS applied! Free ₹0 delivery.");
-      return true;
     }
-    toast.error("Invalid coupon code");
-    return false;
+
+    const applied = res.coupon;
+    const parts: string[] = [];
+    if (applied && applied.discount_percent > 0) {
+      parts.push(`${applied.discount_percent}% discount`);
+    }
+    if (res.isFreeDelivery) {
+      parts.push("Free ₹0 Delivery");
+    }
+
+    const desc = parts.length > 0 ? parts.join(" + ") : "Discount applied";
+    toast.success(`Coupon ${norm} applied! ${desc}`);
+    return true;
   };
 
   const removeCoupon = () => {
@@ -571,6 +576,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         subtotal,
         couponCode,
         discount,
+        activeCoupon,
+        isFreeDeliveryCoupon,
         addToCart,
         updateQty,
         removeItem,

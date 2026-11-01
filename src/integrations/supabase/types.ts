@@ -111,6 +111,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          coupon_code: string | null
           created_at: string
           customer_name: string
           customer_phone: string
@@ -119,6 +120,7 @@ export type Database = {
           delivery_fee_inr: number
           delivery_lat: number
           delivery_lng: number
+          discount_inr: number | null
           id: string
           landmark: string | null
           payment_method: string
@@ -131,6 +133,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          coupon_code?: string | null
           created_at?: string
           customer_name: string
           customer_phone: string
@@ -139,6 +142,7 @@ export type Database = {
           delivery_fee_inr?: number
           delivery_lat: number
           delivery_lng: number
+          discount_inr?: number | null
           id?: string
           landmark?: string | null
           payment_method?: string
@@ -151,6 +155,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          coupon_code?: string | null
           created_at?: string
           customer_name?: string
           customer_phone?: string
@@ -159,6 +164,7 @@ export type Database = {
           delivery_fee_inr?: number
           delivery_lat?: number
           delivery_lng?: number
+          discount_inr?: number | null
           id?: string
           landmark?: string | null
           payment_method?: string
@@ -241,6 +247,51 @@ export type Database = {
           price_inr?: number | null
           images?: Json | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      coupons: {
+        Row: {
+          available_coupons: number
+          code: string
+          created_at: string
+          description: string | null
+          discount_percent: number
+          id: string
+          is_active: boolean
+          is_free_delivery: boolean
+          min_order_amount: number
+          total_coupons: number
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          available_coupons?: number
+          code: string
+          created_at?: string
+          description?: string | null
+          discount_percent?: number
+          id?: string
+          is_active?: boolean
+          is_free_delivery?: boolean
+          min_order_amount?: number
+          total_coupons?: number
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          available_coupons?: number
+          code?: string
+          created_at?: string
+          description?: string | null
+          discount_percent?: number
+          id?: string
+          is_active?: boolean
+          is_free_delivery?: boolean
+          min_order_amount?: number
+          total_coupons?: number
+          updated_at?: string
+          used_count?: number
         }
         Relationships: []
       }

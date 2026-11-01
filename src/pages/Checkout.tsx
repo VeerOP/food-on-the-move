@@ -36,7 +36,7 @@ export type SavedAddress = {
 };
 
 export default function CheckoutPage() {
-  const { items, subtotal, discount, couponCode, applyCoupon, removeCoupon } = useCart();
+  const { items, subtotal, discount, couponCode, activeCoupon, isFreeDeliveryCoupon, applyCoupon, removeCoupon } = useCart();
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
@@ -158,13 +158,14 @@ export default function CheckoutPage() {
   const isMumbai = isMumbaiAddress(cleanPin, address);
   const deliveryThreshold = isMumbai ? 1000 : 2000;
   const rawDeliveryFee = computeDeliveryFee(subtotal, cleanPin, address);
-  // DELIVERYONUS is strictly applicable ONLY for orders under 1000 inside Mumbai, or under 2000 outside Mumbai
-  const isFreeDeliveryCoupon =
-    couponCode.toUpperCase() === "DELIVERYONUS" &&
-    ((isMumbai && subtotal < 1000) || (!isMumbai && subtotal < 2000));
-  const deliveryFee = isFreeDeliveryCoupon ? 0 : rawDeliveryFee;
+  // Free delivery coupon is active if coupon grants free delivery or DELIVERYONUS under threshold
+  const isFreeDeliveryCouponEffective =
+    isFreeDeliveryCoupon ||
+    (couponCode.toUpperCase() === "DELIVERYONUS" &&
+      ((isMumbai && subtotal < 1000) || (!isMumbai && subtotal < 2000)));
+  const deliveryFee = isFreeDeliveryCouponEffective ? 0 : rawDeliveryFee;
   const total = subtotal - discount + deliveryFee;
-  const amountToFree = isFreeDeliveryCoupon ? 0 : Math.max(0, deliveryThreshold - subtotal);
+  const amountToFree = isFreeDeliveryCouponEffective ? 0 : Math.max(0, deliveryThreshold - subtotal);
 
   const handleProceed = async () => {
     if (!user) {
@@ -223,32 +224,45 @@ export default function CheckoutPage() {
     const lat = STORE.lat;
     const lng = STORE.lng;
 
-    const { data: order, error } = await supabase
-      .from("orders")
-      .insert({
-        user_id: user.id,
-        status: "pending_payment",
-        subtotal_inr: subtotal - discount,
-        delivery_fee_inr: deliveryFee,
-        total_inr: total,
-        delivery_address: address.trim(),
-        landmark: landmark.trim() || null,
-        pincode: cleanPin,
-        delivery_lat: lat,
-        delivery_lng: lng,
-        delivery_distance_km: 0,
-        customer_name: name.trim(),
-        customer_phone: phone.trim(),
-        customer_email: user.email?.trim() || null,
-        payment_method: paymentMethod,
-      })
-      .select("id")
-      .single();
+    const orderPayload: any = {
+      user_id: user.id,
+      status: "pending_payment",
+      subtotal_inr: subtotal - discount,
+      delivery_fee_inr: deliveryFee,
+      total_inr: total,
+      delivery_address: address.trim(),
+      landmark: landmark.trim() || null,
+      pincode: cleanPin,
+      delivery_lat: lat,
+      delivery_lng: lng,
+      delivery_distance_km: 0,
+      customer_name: name.trim(),
+      customer_phone: phone.trim(),
+      customer_email: user.email?.trim() || null,
+      payment_method: paymentMethod,
+      coupon_code: couponCode || null,
+      discount_inr: discount || 0,
+    };
 
-    if (error || !order) {
+    let orderRes = await supabase.from("orders").insert(orderPayload).select("id").single();
+    if (orderRes.error && orderRes.error.message.includes("coupon_code")) {
+      // Fallback if Supabase database doesn't have coupon_code column yet
+      delete orderPayload.coupon_code;
+      delete orderPayload.discount_inr;
+      orderRes = await supabase.from("orders").insert(orderPayload).select("id").single();
+    }
+
+    const order = orderRes.data;
+
+    if (orderRes.error || !order) {
       setSubmitting(false);
-      toast.error(error?.message ?? "Failed to create order");
+      toast.error(orderRes.error?.message ?? "Failed to create order");
       return;
+    }
+
+    // Always persist coupon code with order ID so Pay.tsx can redeem it on payment
+    if (couponCode) {
+      localStorage.setItem(`fomo_order_coupon_${order.id}`, couponCode);
     }
 
     const orderItems = items.map((i) => ({
@@ -586,11 +600,15 @@ export default function CheckoutPage() {
                   <div className="flex flex-col">
                     <span className="font-semibold text-primary">{couponCode} applied</span>
                     <span className="text-[11px] text-muted-foreground">
-                      {couponCode.toUpperCase() === "DELIVERYONUS"
-                        ? isFreeDeliveryCoupon
-                          ? "Free ₹0 Delivery"
-                          : `Standard Free Delivery already unlocked (Orders ₹${deliveryThreshold}+)`
-                        : "20% discount on total puffs"}
+                      {activeCoupon?.description || (
+                        couponCode.toUpperCase() === "DELIVERYONUS"
+                          ? isFreeDeliveryCouponEffective
+                            ? "Free ₹0 Delivery"
+                            : `Standard Free Delivery already unlocked (Orders ₹${deliveryThreshold}+)`
+                          : activeCoupon && activeCoupon.discount_percent > 0
+                          ? `${activeCoupon.discount_percent}% discount applied`
+                          : "Discount applied"
+                      )}
                     </span>
                   </div>
                   <Button
@@ -638,11 +656,11 @@ export default function CheckoutPage() {
               )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
-                <span>{deliveryFee === 0 ? (isFreeDeliveryCoupon ? "FREE (DELIVERYONUS)" : "FREE") : `₹${deliveryFee.toFixed(2)}`}</span>
+                <span>{deliveryFee === 0 ? (isFreeDeliveryCouponEffective ? `FREE (${couponCode})` : "FREE") : `₹${deliveryFee.toFixed(2)}`}</span>
               </div>
-              {isFreeDeliveryCoupon ? (
+              {isFreeDeliveryCouponEffective ? (
                 <p className="text-[11px] text-primary font-medium">
-                  ✓ Free ₹0 delivery applied with coupon DELIVERYONUS
+                  ✓ Free ₹0 delivery applied with coupon {couponCode}
                 </p>
               ) : deliveryFee === 0 ? (
                 <p className="text-[11px] text-primary font-medium">
