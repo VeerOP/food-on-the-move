@@ -9,7 +9,7 @@ import fomoBottle from "@/assets/steel-bottle-new.webp";
 export function FreeBottleOfferPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  const { subtotal, count } = useCart();
+  const { subtotal, count, isFreeBottleOfferActive } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,6 +19,7 @@ export function FreeBottleOfferPopup() {
 
   useEffect(() => {
     setHasMounted(true);
+    if (!isFreeBottleOfferActive) return;
     // Automatically show popup after 1.8s delay on home page if not dismissed this session
     const isDismissed = sessionStorage.getItem("fomo_free_bottle_popup_dismissed") === "true";
     if (!isDismissed && location.pathname === "/") {
@@ -27,7 +28,7 @@ export function FreeBottleOfferPopup() {
       }, 1800);
       return () => clearTimeout(timer);
     }
-  }, [location.pathname]);
+  }, [location.pathname, isFreeBottleOfferActive]);
 
   const handleClose = () => {
     setIsOpen(false);
@@ -54,7 +55,7 @@ export function FreeBottleOfferPopup() {
     }
   };
 
-  if (!hasMounted) return null;
+  if (!hasMounted || !isFreeBottleOfferActive) return null;
 
   return (
     <>

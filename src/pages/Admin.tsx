@@ -120,6 +120,8 @@ export default function AdminPage() {
     updateAvailableCount,
     deleteCoupon,
     isSupabaseOnline,
+    isFreeBottleActive,
+    toggleFreeBottleOffer,
   } = useCoupons();
 
   const [couponSearch, setCouponSearch] = useState("");
@@ -128,6 +130,27 @@ export default function AdminPage() {
   const [quotaEdits, setQuotaEdits] = useState<Record<string, number>>({});
   const [savingQuotaId, setSavingQuotaId] = useState<string | null>(null);
   const [isRefreshingCoupons, setIsRefreshingCoupons] = useState(false);
+  const [isTogglingFreeBottle, setIsTogglingFreeBottle] = useState(false);
+
+  const handleToggleFreeBottleOffer = async (checked: boolean) => {
+    setIsTogglingFreeBottle(true);
+    try {
+      const ok = await toggleFreeBottleOffer(checked);
+      if (ok) {
+        toast.success(
+          checked
+            ? "Free Bottle Offer & Coupon (FREEBOTTLE) enabled!"
+            : "Free Bottle Offer & Coupon (FREEBOTTLE) disabled."
+        );
+      } else {
+        toast.error("Failed to update Free Bottle status");
+      }
+    } catch (e) {
+      toast.error("Error updating Free Bottle status");
+    } finally {
+      setIsTogglingFreeBottle(false);
+    }
+  };
 
   // Add Coupon Dialog
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -406,6 +429,9 @@ export default function AdminPage() {
     setIsSubmittingEdit(false);
 
     if (res.success) {
+      if (editingCoupon.code.toUpperCase() === "FREEBOTTLE" || editCode.toUpperCase() === "FREEBOTTLE") {
+        void toggleFreeBottleOffer(editIsActive);
+      }
       toast.success(`Coupon ${editCode.toUpperCase()} updated successfully!`);
       setEditingCoupon(null);
     } else {
@@ -428,6 +454,10 @@ export default function AdminPage() {
 
   const handleToggleCouponStatus = async (coupon: Coupon) => {
     const nextStatus = !coupon.is_active;
+    if (coupon.code.toUpperCase() === "FREEBOTTLE") {
+      await handleToggleFreeBottleOffer(nextStatus);
+      return;
+    }
     const res = await updateCoupon(coupon.id, { is_active: nextStatus });
     if (res.success) {
       toast.success(`Coupon ${coupon.code} marked ${nextStatus ? "Active" : "Inactive"}`);
@@ -1275,6 +1305,47 @@ export default function AdminPage() {
                 <p className="text-xs text-muted-foreground mt-1">
                   {freeDeliveryCount} include Free Delivery
                 </p>
+              </div>
+            </div>
+
+            {/* Free Bottle Promotion Quick Control Banner */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-primary/10 to-amber-500/10 border-2 border-primary/30 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-primary text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Gift className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-display font-bold text-lg text-foreground">
+                      Free Stainless Steel Bottle Promotion
+                    </h3>
+                    <Badge
+                      className={cn(
+                        "text-xs font-semibold px-2.5 py-0.5",
+                        isFreeBottleActive
+                          ? "bg-emerald-500/15 text-emerald-600 border-emerald-500/30"
+                          : "bg-muted text-muted-foreground border-border"
+                      )}
+                    >
+                      {isFreeBottleActive ? "Active Across Website & Cart" : "Offer Disabled"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                    Controls the auto-gift steel bottle (₹300 value) on orders above ₹1,200, the homepage promo section, the interactive offer popup, and the <span className="font-mono font-semibold text-foreground">FREEBOTTLE</span> coupon.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 self-end md:self-center shrink-0 bg-background/90 px-4 py-2.5 rounded-xl border border-border shadow-sm">
+                <span className="text-xs sm:text-sm font-semibold text-foreground">
+                  {isFreeBottleActive ? "Promotion Enabled" : "Promotion Disabled"}
+                </span>
+                <Switch
+                  checked={isFreeBottleActive}
+                  disabled={isTogglingFreeBottle}
+                  onCheckedChange={handleToggleFreeBottleOffer}
+                  className="data-[state=checked]:bg-emerald-500"
+                />
               </div>
             </div>
 

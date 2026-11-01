@@ -137,6 +137,18 @@ export const INITIAL_COUPONS: Coupon[] = [
     is_active: true,
     description: "Free ₹0 delivery fee coupon",
   },
+  {
+    id: "coupon-free-bottle",
+    code: "FREEBOTTLE",
+    discount_percent: 0,
+    is_free_delivery: true,
+    total_coupons: 1000,
+    available_coupons: 1000,
+    used_count: 0,
+    min_order_amount: 1200,
+    is_active: true,
+    description: "FREE Food On The Move Stainless Steel Bottle (Worth ₹300) + Free Delivery on orders ₹1,200+",
+  },
 ];
 
 const LOCAL_STORAGE_KEY = "fomo_coupons_cache_v1";
@@ -178,8 +190,18 @@ function saveLocalCoupons(coupons: Coupon[]) {
 
 const listeners = new Set<(coupons: Coupon[]) => void>();
 
+export function subscribeCoupons(fn: (coupons: Coupon[]) => void): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
 function notifyListeners() {
   listeners.forEach((fn) => fn(cachedCoupons));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("fomo_free_bottle_changed"));
+  }
 }
 
 // Fetch coupons from Supabase table, with automatic fallback and seed synchronization
@@ -227,6 +249,10 @@ export async function fetchCoupons(): Promise<Coupon[]> {
           updated_at: row.updated_at,
         }));
         cachedCoupons = mapped;
+        const bottle = mapped.find((c) => c.code?.toUpperCase() === "FREEBOTTLE");
+        if (bottle && typeof window !== "undefined") {
+          localStorage.setItem("fomo_free_bottle_enabled", String(bottle.is_active));
+        }
       }
       saveLocalCoupons(cachedCoupons);
       notifyListeners();
@@ -515,6 +541,9 @@ export async function updateCoupon(
   }
 
   cachedCoupons = cachedCoupons.map((c) => (c.id === id ? updated : c));
+  if (updated.code.toUpperCase() === "FREEBOTTLE" && typeof window !== "undefined") {
+    localStorage.setItem("fomo_free_bottle_enabled", String(updated.is_active));
+  }
   saveLocalCoupons(cachedCoupons);
   notifyListeners();
 
@@ -553,6 +582,39 @@ export async function deleteCoupon(id: string): Promise<{ success: boolean; erro
 }
 
 /**
+ * Check if the Free Bottle Offer / Coupon is currently active
+ */
+export function isFreeBottleActive(): boolean {
+  const bottleCoupon = getCouponByCode("FREEBOTTLE");
+  if (bottleCoupon) {
+    return Boolean(bottleCoupon.is_active);
+  }
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem("fomo_free_bottle_enabled");
+    if (saved !== null) {
+      return saved === "true";
+    }
+  }
+  return true;
+}
+
+/**
+ * Enable or Disable the Free Bottle Offer & Coupon
+ */
+export async function setFreeBottleOfferActive(active: boolean): Promise<boolean> {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("fomo_free_bottle_enabled", String(active));
+  }
+  const bottleCoupon = getCouponByCode("FREEBOTTLE");
+  if (bottleCoupon) {
+    const res = await updateCoupon(bottleCoupon.id, { is_active: active });
+    return res.success;
+  }
+  notifyListeners();
+  return true;
+}
+
+/**
  * React Hook for component consumption
  */
 export function useCoupons() {
@@ -574,6 +636,13 @@ export function useCoupons() {
     setLoading(false);
   }, []);
 
+  const freeBottleCoupon = coupons.find((c) => c.code.toUpperCase() === "FREEBOTTLE");
+  const isFreeBottle = freeBottleCoupon ? freeBottleCoupon.is_active : isFreeBottleActive();
+
+  const toggleFreeBottleOffer = useCallback(async (active: boolean) => {
+    return setFreeBottleOfferActive(active);
+  }, []);
+
   return {
     coupons,
     loading,
@@ -586,5 +655,7 @@ export function useCoupons() {
     validateCoupon,
     redeemCoupon,
     isSupabaseOnline,
+    isFreeBottleActive: isFreeBottle,
+    toggleFreeBottleOffer,
   };
 }

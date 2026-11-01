@@ -5,7 +5,9 @@ import { useCart, FREE_BOTTLE_THRESHOLD } from "@/hooks/use-cart";
 import fomoBottle from "@/assets/steel-bottle-new.webp";
 
 export function OffersSection() {
-  const { subtotal } = useCart();
+  const { subtotal, isFreeBottleOfferActive } = useCart();
+  if (!isFreeBottleOfferActive) return null;
+
   const threshold = FREE_BOTTLE_THRESHOLD;
   const isUnlocked = subtotal >= threshold;
   const amountNeeded = Math.max(0, threshold - subtotal);

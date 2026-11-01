@@ -16,7 +16,23 @@ import { toast } from "sonner";
 import { CartCounter } from "@/components/CartCounter";
 
 export default function CartPage() {
-  const { items, subtotal, count, updateQty, removeItem, addToCart, loading, couponCode, discount, activeCoupon, isFreeDeliveryCoupon, applyCoupon, removeCoupon, clearCart } = useCart();
+  const {
+    items,
+    subtotal,
+    count,
+    updateQty,
+    removeItem,
+    addToCart,
+    loading,
+    couponCode,
+    discount,
+    activeCoupon,
+    isFreeDeliveryCoupon,
+    isFreeBottleOfferActive,
+    applyCoupon,
+    removeCoupon,
+    clearCart,
+  } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [couponInput, setCouponInput] = useState("");
@@ -195,21 +211,23 @@ export default function CartPage() {
                 ) : null}
 
                 {/* Free Bottle Perk Status */}
-                <div className="pt-2">
-                  {subtotal >= FREE_BOTTLE_THRESHOLD ? (
-                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 font-semibold">
-                      <Gift className="w-4 h-4 text-primary shrink-0" />
-                      <span>🎉 Free Food On The Move Bottle (Worth ₹300) included in your cart!</span>
-                    </div>
-                  ) : (
-                    <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2 text-xs text-foreground">
-                      <Gift className="w-4 h-4 text-primary shrink-0" />
-                      <span>
-                        Add <strong>₹{(FREE_BOTTLE_THRESHOLD - subtotal).toFixed(0)}</strong> more to get a <strong>FREE Food On The Move Bottle</strong>!
-                      </span>
-                    </div>
-                  )}
-                </div>
+                {isFreeBottleOfferActive && (
+                  <div className="pt-2">
+                    {subtotal >= FREE_BOTTLE_THRESHOLD ? (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 font-semibold">
+                        <Gift className="w-4 h-4 text-primary shrink-0" />
+                        <span>🎉 Free Food On The Move Bottle (Worth ₹300) included in your cart!</span>
+                      </div>
+                    ) : (
+                      <div className="p-2.5 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2 text-xs text-foreground">
+                        <Gift className="w-4 h-4 text-primary shrink-0" />
+                        <span>
+                          Add <strong>₹{(FREE_BOTTLE_THRESHOLD - subtotal).toFixed(0)}</strong> more to get a <strong>FREE Food On The Move Bottle</strong>!
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Coupon Code Section */}

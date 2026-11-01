@@ -6,7 +6,7 @@ import { getAvailableStock, isSoldOut } from "@/lib/inventory";
 import { isMumbaiAddress } from "@/lib/delivery";
 import { toast } from "sonner";
 import { AddedToCartModal, AddedItemInfo } from "@/components/AddedToCartModal";
-import { Coupon, validateCoupon, getCouponByCode, fetchCoupons } from "@/lib/coupons";
+import { Coupon, validateCoupon, getCouponByCode, fetchCoupons, isFreeBottleActive, subscribeCoupons } from "@/lib/coupons";
 
 export const FREE_BOTTLE_OFFER_ACTIVE = true;
 export const FREE_BOTTLE_THRESHOLD = 1200;
@@ -37,6 +37,7 @@ type CartCtx = {
   discount: number;
   activeCoupon: Coupon | null;
   isFreeDeliveryCoupon: boolean;
+  isFreeBottleOfferActive: boolean;
   addToCart: (slug: string, opts?: AddOptions) => Promise<void>;
   updateQty: (id: string, qty: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
@@ -95,6 +96,7 @@ const Ctx = createContext<CartCtx>({
   discount: 0,
   activeCoupon: null,
   isFreeDeliveryCoupon: false,
+  isFreeBottleOfferActive: true,
   addToCart: async () => {},
   updateQty: async () => {},
   removeItem: async () => {},
@@ -126,7 +128,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
   });
   const [addedItem, setAddedItem] = useState<AddedItemInfo | null>(null);
   const [isAddedModalOpen, setIsAddedModalOpen] = useState(false);
+  const [isFreeBottleOfferActive, setIsFreeBottleOfferActive] = useState<boolean>(() => isFreeBottleActive());
   const hasMergedUserCart = useRef<string | null>(null);
+
+  useEffect(() => {
+    const updateBottleStatus = () => {
+      setIsFreeBottleOfferActive(isFreeBottleActive());
+    };
+
+    const unsub = subscribeCoupons(() => {
+      updateBottleStatus();
+    });
+
+    window.addEventListener("fomo_free_bottle_changed", updateBottleStatus);
+    window.addEventListener("storage", updateBottleStatus);
+
+    return () => {
+      unsub();
+      window.removeEventListener("fomo_free_bottle_changed", updateBottleStatus);
+      window.removeEventListener("storage", updateBottleStatus);
+    };
+  }, []);
 
   // Sync state to localStorage whenever items change
   const updateItems = useCallback((newItems: CartItem[] | ((prev: CartItem[]) => CartItem[])) => {
@@ -212,7 +234,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     const syncFreeGift = async () => {
       // Inactive free bottle offer: clean up any free bottle items from cart
-      if (!FREE_BOTTLE_OFFER_ACTIVE) {
+      if (!isFreeBottleOfferActive) {
         const freeItems = items.filter(
           (i) => i.product_slug === "fomo-steel-bottle" && (i.variant === "free" || i.price_inr === 0)
         );
@@ -312,7 +334,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
 
     syncFreeGift();
-  }, [items, user, loading, couponCode, updateItems]);
+  }, [items, user, loading, couponCode, updateItems, isFreeBottleOfferActive]);
 
   const showPopup = (product: { name: string; image: string | null; slug: string }, price: number, qty: number) => {
     setAddedItem({
@@ -494,13 +516,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
     (couponCode.toUpperCase() === "DELIVERYONUS" && subtotal < 2000);
 
   const applyCoupon = (code: string, context?: { pincode?: string; address?: string }) => {
+    const norm = (code || "").trim().toUpperCase();
+    if (norm === "FREEBOTTLE" && !isFreeBottleOfferActive) {
+      toast.error("The Free Bottle offer is currently disabled by admin.");
+      return false;
+    }
+
     const res = validateCoupon(code, subtotal, context);
     if (!res.valid) {
       toast.error(res.error || "Invalid coupon code");
       return false;
     }
-
-    const norm = (code || "").trim().toUpperCase();
     setCouponCode(norm);
     if (norm !== "DELIVERYONUS") {
       localStorage.setItem(COUPON_STORAGE_KEY, norm);
@@ -578,6 +604,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         discount,
         activeCoupon,
         isFreeDeliveryCoupon,
+        isFreeBottleOfferActive,
         addToCart,
         updateQty,
         removeItem,
